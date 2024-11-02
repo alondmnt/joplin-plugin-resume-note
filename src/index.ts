@@ -5,21 +5,20 @@ const refreshInterval = 3000;
 
 // In-memory map
 let currentFolderId: string = '';
+let currentNoteId: string = '';
 let folderNoteMap: Record<string, string> = {};
 let noteCursorMap: Record<string, { line: number, ch: number }> = {};
 
 // Function to update cursor position
 async function updateCursorPosition(): Promise<void> {
-	const note = await joplin.workspace.selectedNote();
-	if (!note) return;
-  currentFolderId = note.parent_id;
+	if (!currentNoteId) return;
 
 	const cursor = await joplin.commands.execute('editor.execCommand', {
 		name: 'getCursor'
 	});
 
 	if (cursor) {
-		noteCursorMap[note.id] = cursor;
+		noteCursorMap[currentNoteId] = cursor;
 	}
 }
 
@@ -115,28 +114,29 @@ joplin.plugins.register({
 			const note = await joplin.workspace.selectedNote();
 			if (!note) return;
 
-			// Update the last note ID
-			await joplin.settings.setValue('stickynote.lastNoteId', note.id);
-
+			currentNoteId = note.id;
 			const newFolderId = note.parent_id;
 
+			// Update the last note ID
+			await joplin.settings.setValue('stickynote.lastNoteId', currentNoteId);
+
 			if (newFolderId !== currentFolderId) {
+        currentFolderId = newFolderId;
+
 				// Check if we have a saved note for the new folder
 				const savedNoteId = folderNoteMap[newFolderId];
 				if (savedNoteId) {
 					// Navigate to the saved note
-					await joplin.commands.execute('openNote', savedNoteId);
+						await joplin.commands.execute('openNote', savedNoteId);
 				}
-
-				currentFolderId = newFolderId;
 
 			} else {
 				// Update both in-memory map and settings
-				await updateFolderNoteMap(currentFolderId, note.id);
+				await updateFolderNoteMap(currentFolderId, currentNoteId);
 			}
 
 			// If we have a saved cursor position for this note, restore it
-			const savedCursor = noteCursorMap[note.id];
+			const savedCursor = noteCursorMap[currentNoteId];
 			if (savedCursor) {
         await joplin.commands.execute('editor.focus');
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -151,6 +151,12 @@ joplin.plugins.register({
         });
 			}
 		});
+
+		// Also initialize both currentNoteId and currentFolderId in onStart
+		currentNoteId = await joplin.workspace.selectedNote().then(note => note.id);
+		if (currentNoteId) {
+			currentFolderId = await joplin.workspace.selectedNote().then(note => note.parent_id);
+		}
 	},
 });
 
