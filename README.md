@@ -1,5 +1,10 @@
-# Joplin Plugin
+# 📝 Sticky Note
 
-This is your new Joplin plugin. It is suggested that you use this README file to document your plugin.
+A Joplin plugin that allows you to save and restore the last active note in each folder, and the cursor position for each note in the Markdown editor.
 
-For information on how to build or publish the plugin, please see [GENERATOR_DOC.md](./GENERATOR_DOC.md)
+## Features
+
+- Save and restore the last active note in each folder
+- Save and restore the cursor position in the Markdown editor for each note
+    - Optionally use note properties to sync across devices and Joplin sessions
+- Set a home note or load the last active note on startup
