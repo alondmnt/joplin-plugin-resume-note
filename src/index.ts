@@ -22,7 +22,7 @@ async function updateCursorPosition(): Promise<void> {
 
 joplin.plugins.register({
 	onStart: async function() {
-		// Register the setting
+		// Register the settings section and settings
 		await joplin.settings.registerSection('stickynote', {
 			label: 'Sticky Note',
 			iconName: 'fas fa-sticky-note',
@@ -61,7 +61,7 @@ joplin.plugins.register({
 			},
 		});
 
-		// Register the command
+		// Register commands
 		await joplin.commands.register({
 			name: 'stickynote.setHomeNote',
 			label: 'Set as home note',
