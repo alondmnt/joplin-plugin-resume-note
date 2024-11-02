@@ -1,11 +1,12 @@
 import joplin from 'api';
-import { SettingItemType, MenuItemLocation, ContentScriptType } from 'api/types';
+import { SettingItemType, MenuItemLocation, ContentScriptType, ModelType } from 'api/types';
 
 // In-memory map
 let currentFolderId: string = '';
 let currentNoteId: string = '';
 let folderNoteMap: Record<string, string> = {};
 let noteCursorMap: Record<string, { line: number, ch: number }> = {};
+let useUserData: boolean = false;
 
 // Function to update cursor position
 async function updateCursorPosition(): Promise<void> {
@@ -17,6 +18,11 @@ async function updateCursorPosition(): Promise<void> {
 
 	if (cursor) {
 		noteCursorMap[currentNoteId] = cursor;
+		
+		// Add userData storage if enabled
+		if (useUserData) {
+			await joplin.data.userDataSet(ModelType.Note, currentNoteId, 'cursor', cursor);
+		}
 	}
 }
 
@@ -55,9 +61,17 @@ joplin.plugins.register({
 				public: true,
 				section: 'stickynote',
 				label: 'Cursor position refresh interval (ms)',
-				description: 'How often to save the cursor position (in milliseconds). Requires a restart.',
+				description: 'How often to save the cursor position (in milliseconds). Requires restart.',
 				minimum: 1000,
 				maximum: 10000,
+			},
+			'stickynote.useUserData': {
+				value: false,
+				type: SettingItemType.Bool,
+				public: true,
+				section: 'stickynote',
+				label: 'Sync data using note properties (Experimental)',
+				description: 'Store folder and cursor data using note properties instead of settings. Data will sync across devices and be retained after restart. Requires restart.',
 			},
 		});
 
@@ -101,6 +115,9 @@ joplin.plugins.register({
     './cursorTracker.js'
     );
 
+    // Load the useUserData setting
+    useUserData = await joplin.settings.value('stickynote.useUserData');
+
 		// Load the saved map on startup
 		const mapJson = await joplin.settings.value('stickynote.folderNoteMap');
 		folderNoteMap = JSON.parse(mapJson);
@@ -132,7 +149,7 @@ joplin.plugins.register({
         currentFolderId = newFolderId;
 
 				// Check if we have a saved note for the new folder
-				const savedNoteId = folderNoteMap[newFolderId];
+				const savedNoteId = await loadFolderNoteMap(newFolderId);
 				if (savedNoteId) {
 					// Navigate to the saved note
 						await joplin.commands.execute('openNote', savedNoteId);
@@ -144,7 +161,7 @@ joplin.plugins.register({
 			}
 
 			// If we have a saved cursor position for this note, restore it
-			const savedCursor = noteCursorMap[currentNoteId];
+			const savedCursor = await loadCursorPosition(currentNoteId);
 			if (savedCursor) {
         await joplin.commands.execute('editor.focus');
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -168,11 +185,38 @@ joplin.plugins.register({
 	},
 });
 
-// Helper function to update both the in-memory map and settings
-async function updateFolderNoteMap(folderId: string, noteId: string): Promise<void> {
-	// Update in-memory object
-	folderNoteMap[folderId] = noteId;
-	
-	// Update settings (can now stringify directly)
-	await joplin.settings.setValue('stickynote.folderNoteMap', JSON.stringify(folderNoteMap));
+// Helper functions to update / load both the in-memory map, settings and user data
+async function updateFolderNoteMap(folderId: string, noteId: string): Promise<void> {  
+  if (useUserData) {
+    // Store in userData
+		await joplin.data.userDataSet(ModelType.Folder, folderId, `note`, noteId);
+
+	} else {
+    // Update in-memory object
+    folderNoteMap[folderId] = noteId;
+    // Update settings
+		await joplin.settings.setValue('stickynote.folderNoteMap', JSON.stringify(folderNoteMap));
+	}
+}
+
+async function loadFolderNoteMap(folderId: string): Promise<string> {
+  let noteId: string;
+  if (useUserData) {
+    // Load from userData
+    noteId = await joplin.data.userDataGet(ModelType.Folder, folderId, `note`);
+  } else {
+    // Load from settings / memory
+    noteId = folderNoteMap[folderId];
+  }
+  return noteId;
+}
+
+async function loadCursorPosition(noteId: string): Promise<{ line: number, ch: number } | undefined> {
+  // Load from userData
+	if (useUserData) {
+		const savedCursor: { line: number, ch: number } = await joplin.data.userDataGet(ModelType.Note, currentNoteId, 'cursor');
+		return savedCursor;
+	}
+  // Load from memory
+	return noteCursorMap[noteId];
 }
