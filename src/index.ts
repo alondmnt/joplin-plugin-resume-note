@@ -64,33 +64,33 @@ joplin.plugins.register({
 		// Register the command
 		await joplin.commands.register({
 			name: 'stickynote.setHomeNote',
-			label: 'Set as Home Note',
+			label: 'Set as home note',
 			execute: async () => {
 				const note = await joplin.workspace.selectedNote();
 				if (note) {
 					await joplin.settings.setValue('stickynote.homeNoteId', note.id);
-					await joplin.views.dialogs.showMessageBox('Current note set as Home Note');
+					await joplin.views.dialogs.showMessageBox('Current note set as home note');
 				}
 			},
 		});
 		await joplin.commands.register({
 			name: 'stickynote.resetHomeNote',
-			label: 'Reset Home Note',
+			label: 'Reset home note',
 			execute: async () => {
 				await joplin.settings.setValue('stickynote.homeNoteId', '');
-				await joplin.views.dialogs.showMessageBox('Home Note reset');
+				await joplin.views.dialogs.showMessageBox('Home note reset');
 			},
 		});
 
 		// Add commands to Note menu
 		await joplin.views.menuItems.create(
 			'stickynote.setHomeNoteMenuItem',
-			'setHomeNote',
+			'stickynote.setHomeNote',
 			MenuItemLocation.Note
 		);
 		await joplin.views.menuItems.create(
 			'stickynote.resetHomeNoteMenuItem',
-			'resetHomeNote',
+			'stickynote.resetHomeNote',
 			MenuItemLocation.Note
 		);
 
