@@ -8,24 +8,6 @@ let folderNoteMap: Record<string, string> = {};
 let noteCursorMap: Record<string, { line: number, ch: number }> = {};
 let useUserData: boolean = false;
 
-// Function to update cursor position
-async function updateCursorPosition(): Promise<void> {
-	if (!currentNoteId) return;
-
-	const cursor = await joplin.commands.execute('editor.execCommand', {
-		name: 'getCursor'
-	});
-
-	if (cursor) {
-		noteCursorMap[currentNoteId] = cursor;
-		
-		// Add userData storage if enabled
-		if (useUserData) {
-			await joplin.data.userDataSet(ModelType.Note, currentNoteId, 'cursor', cursor);
-		}
-	}
-}
-
 joplin.plugins.register({
 	onStart: async function() {
 		// Register the settings section and settings
@@ -127,8 +109,15 @@ joplin.plugins.register({
 		const homeNoteId = await joplin.settings.value('stickynote.homeNoteId');
 		if (homeNoteId) {
 			await joplin.commands.execute('openNote', homeNoteId);
+      setTimeout(async () => {
+        await restoreCursorPosition(homeNoteId);
+      }, 500);
+
 		} else if (lastNoteId) {
 			await joplin.commands.execute('openNote', lastNoteId);
+      setTimeout(async () => {
+        await restoreCursorPosition(lastNoteId);
+      }, 500);
 		}
 
 		// Periodic cursor position update
@@ -161,20 +150,7 @@ joplin.plugins.register({
 			}
 
 			// If we have a saved cursor position for this note, restore it
-			const savedCursor = await loadCursorPosition(currentNoteId);
-			if (savedCursor) {
-        await joplin.commands.execute('editor.focus');
-        await new Promise(resolve => setTimeout(resolve, 100));
-        await joplin.commands.execute('editor.execCommand', {
-          name: 'setCursor',
-          args: [savedCursor]
-        });
-        await new Promise(resolve => setTimeout(resolve, 100));
-        await joplin.commands.execute('editor.execCommand', {
-          name: 'scrollIntoView',
-          args: [savedCursor.line, savedCursor.ch]
-        });
-			}
+			await restoreCursorPosition(currentNoteId);
 		});
 
 		// Also initialize both currentNoteId and currentFolderId in onStart
@@ -211,6 +187,24 @@ async function loadFolderNoteMap(folderId: string): Promise<string> {
   return noteId;
 }
 
+// Functions to handle cursor position
+async function updateCursorPosition(): Promise<void> {
+	if (!currentNoteId) return;
+
+	const cursor = await joplin.commands.execute('editor.execCommand', {
+		name: 'getCursor'
+	});
+
+	if (cursor) {
+		noteCursorMap[currentNoteId] = cursor;
+		
+		// Add userData storage if enabled
+		if (useUserData) {
+			await joplin.data.userDataSet(ModelType.Note, currentNoteId, 'cursor', cursor);
+		}
+	}
+}
+
 async function loadCursorPosition(noteId: string): Promise<{ line: number, ch: number } | undefined> {
   // Load from userData
 	if (useUserData) {
@@ -219,4 +213,21 @@ async function loadCursorPosition(noteId: string): Promise<{ line: number, ch: n
 	}
   // Load from memory
 	return noteCursorMap[noteId];
+}
+
+async function restoreCursorPosition(noteId: string): Promise<void> {
+	const savedCursor = await loadCursorPosition(noteId);
+	if (savedCursor) {
+		await joplin.commands.execute('editor.focus');
+		await new Promise(resolve => setTimeout(resolve, 100));
+		await joplin.commands.execute('editor.execCommand', {
+			name: 'setCursor',
+			args: [savedCursor]
+		});
+		await new Promise(resolve => setTimeout(resolve, 100));
+		await joplin.commands.execute('editor.execCommand', {
+			name: 'scrollIntoView',
+			args: [savedCursor.line, savedCursor.ch]
+		});
+	}
 }
