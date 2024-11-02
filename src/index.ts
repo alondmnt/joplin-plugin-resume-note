@@ -1,8 +1,6 @@
 import joplin from 'api';
 import { SettingItemType, MenuItemLocation, ContentScriptType } from 'api/types';
 
-const refreshInterval = 3000;
-
 // In-memory map
 let currentFolderId: string = '';
 let currentNoteId: string = '';
@@ -49,7 +47,17 @@ joplin.plugins.register({
 				type: SettingItemType.String,
 				public: true,
 				section: 'stickynote',
-				label: 'Home Note ID',
+				label: 'Home note ID',
+			},
+			'stickynote.refreshInterval': {
+				value: 2000,
+				type: SettingItemType.Int,
+				public: true,
+				section: 'stickynote',
+				label: 'Cursor position refresh interval (ms)',
+				description: 'How often to save the cursor position (in milliseconds). Requires a restart.',
+				minimum: 1000,
+				maximum: 10000,
 			},
 		});
 
@@ -107,7 +115,7 @@ joplin.plugins.register({
 		}
 
 		// Periodic cursor position update
-		setInterval(updateCursorPosition, refreshInterval);
+		setInterval(updateCursorPosition, await joplin.settings.value('stickynote.refreshInterval'));
 
 		// Update cursor position on note selection change
 		await joplin.workspace.onNoteSelectionChange(async () => {
