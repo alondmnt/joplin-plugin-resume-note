@@ -1,6 +1,6 @@
 # ↺ Resume Note
 
-Continue editing the last active note in each notebook, and go back to the last cursor position in the Markdown editor.
+A [Joplin](https://joplinapp.org/) plugin to continue editing the last active note in each notebook, and go back to the last cursor position in the Markdown editor.
 
 ## Features
 
