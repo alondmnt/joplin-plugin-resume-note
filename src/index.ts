@@ -11,47 +11,47 @@ let useUserData: boolean = false;
 joplin.plugins.register({
 	onStart: async function() {
 		// Register the settings section and settings
-		await joplin.settings.registerSection('stickynote', {
+		await joplin.settings.registerSection('resumenote', {
 			label: 'Resume Note',
-			iconName: 'fas fa-arrow-rotate-right',
+			iconName: 'fas fa-i-cursor',
 		});
 		await joplin.settings.registerSettings({
-			'stickynote.folderNoteMap': {
+			'resumenote.folderNoteMap': {
 				value: '{}',
 				type: SettingItemType.String,
 				public: false,
-				section: 'stickynote',
+				section: 'resumenote',
 				label: 'Folder Note Map',
 			},
-			'stickynote.lastNoteId': {
+			'resumenote.lastNoteId': {
 				value: '',
 				type: SettingItemType.String,
 				public: false,
-				section: 'stickynote',
+				section: 'resumenote',
 				label: 'Default Note ID',
 			},
-			'stickynote.homeNoteId': {
+			'resumenote.homeNoteId': {
 				value: '',
 				type: SettingItemType.String,
 				public: true,
-				section: 'stickynote',
+				section: 'resumenote',
 				label: 'Home note ID',
 			},
-			'stickynote.refreshInterval': {
+			'resumenote.refreshInterval': {
 				value: 2000,
 				type: SettingItemType.Int,
 				public: true,
-				section: 'stickynote',
+				section: 'resumenote',
 				label: 'Cursor position refresh interval (ms)',
 				description: 'How often to save the cursor position (in milliseconds). Requires restart.',
 				minimum: 1000,
 				maximum: 10000,
 			},
-			'stickynote.useUserData': {
+			'resumenote.useUserData': {
 				value: false,
 				type: SettingItemType.Bool,
 				public: true,
-				section: 'stickynote',
+				section: 'resumenote',
 				label: 'Sync data using note properties (Experimental)',
 				description: 'Store folder and cursor data using note properties instead of settings. Data will sync across devices and be retained after restart. Requires restart.',
 			},
@@ -59,34 +59,34 @@ joplin.plugins.register({
 
 		// Register commands
 		await joplin.commands.register({
-			name: 'stickynote.setHomeNote',
+			name: 'resumenote.setHomeNote',
 			label: 'Set as home note',
 			execute: async () => {
 				const note = await joplin.workspace.selectedNote();
 				if (note) {
-					await joplin.settings.setValue('stickynote.homeNoteId', note.id);
+					await joplin.settings.setValue('resumenote.homeNoteId', note.id);
 					await joplin.views.dialogs.showMessageBox('Current note set as home note');
 				}
 			},
 		});
 		await joplin.commands.register({
-			name: 'stickynote.resetHomeNote',
+			name: 'resumenote.resetHomeNote',
 			label: 'Reset home note',
 			execute: async () => {
-				await joplin.settings.setValue('stickynote.homeNoteId', '');
+				await joplin.settings.setValue('resumenote.homeNoteId', '');
 				await joplin.views.dialogs.showMessageBox('Home note reset');
 			},
 		});
 
 		// Add commands to Note menu
 		await joplin.views.menuItems.create(
-			'stickynote.setHomeNoteMenuItem',
-			'stickynote.setHomeNote',
+			'resumenote.setHomeNoteMenuItem',
+			'resumenote.setHomeNote',
 			MenuItemLocation.Note
 		);
 		await joplin.views.menuItems.create(
-			'stickynote.resetHomeNoteMenuItem',
-			'stickynote.resetHomeNote',
+			'resumenote.resetHomeNoteMenuItem',
+			'resumenote.resetHomeNote',
 			MenuItemLocation.Note
 		);
 
@@ -98,15 +98,15 @@ joplin.plugins.register({
     );
 
     // Load the useUserData setting
-    useUserData = await joplin.settings.value('stickynote.useUserData');
+    useUserData = await joplin.settings.value('resumenote.useUserData');
 
 		// Load the saved map on startup
-		const mapJson = await joplin.settings.value('stickynote.folderNoteMap');
+		const mapJson = await joplin.settings.value('resumenote.folderNoteMap');
 		folderNoteMap = JSON.parse(mapJson);
 
 		// Initialize with current note and folder
-		const lastNoteId = await joplin.settings.value('stickynote.lastNoteId');
-		const homeNoteId = await joplin.settings.value('stickynote.homeNoteId');
+		const lastNoteId = await joplin.settings.value('resumenote.lastNoteId');
+		const homeNoteId = await joplin.settings.value('resumenote.homeNoteId');
 		if (homeNoteId) {
 			await joplin.commands.execute('openNote', homeNoteId);
       setTimeout(async () => {
@@ -121,7 +121,7 @@ joplin.plugins.register({
 		}
 
 		// Periodic cursor position update
-		setInterval(updateCursorPosition, await joplin.settings.value('stickynote.refreshInterval'));
+		setInterval(updateCursorPosition, await joplin.settings.value('resumenote.refreshInterval'));
 
 		// Update cursor position on note selection change
 		await joplin.workspace.onNoteSelectionChange(async () => {
@@ -132,7 +132,7 @@ joplin.plugins.register({
 			const newFolderId = note.parent_id;
 
 			// Update the last note ID
-			await joplin.settings.setValue('stickynote.lastNoteId', currentNoteId);
+			await joplin.settings.setValue('resumenote.lastNoteId', currentNoteId);
 
 			if (newFolderId !== currentFolderId) {
         currentFolderId = newFolderId;
@@ -171,7 +171,7 @@ async function updateFolderNoteMap(folderId: string, noteId: string): Promise<vo
     // Update in-memory object
     folderNoteMap[folderId] = noteId;
     // Update settings
-		await joplin.settings.setValue('stickynote.folderNoteMap', JSON.stringify(folderNoteMap));
+		await joplin.settings.setValue('resumenote.folderNoteMap', JSON.stringify(folderNoteMap));
 	}
 }
 
