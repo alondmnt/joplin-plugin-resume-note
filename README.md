@@ -1,6 +1,6 @@
-# 📝 Sticky Note
+# ↺ Resume Note
 
-A Joplin plugin that allows you to save and restore the last active note in each folder, and the cursor position for each note in the Markdown editor.
+Continue editing the last active note in each notebook, and go back to the last cursor position in the Markdown editor.
 
 ## Features
 

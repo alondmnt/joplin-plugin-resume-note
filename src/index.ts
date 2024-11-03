@@ -12,8 +12,8 @@ joplin.plugins.register({
 	onStart: async function() {
 		// Register the settings section and settings
 		await joplin.settings.registerSection('stickynote', {
-			label: 'Sticky Note',
-			iconName: 'fas fa-sticky-note',
+			label: 'Resume Note',
+			iconName: 'fas fa-arrow-rotate-right',
 		});
 		await joplin.settings.registerSettings({
 			'stickynote.folderNoteMap': {
