@@ -11,9 +11,10 @@ module.exports = {
 					const cm: EditorView = CodeMirror.editor;
 					// Cursor position
 					const selection = cm.state.selection.main;
-					const pos = selection.head;
+					const startPos = selection.anchor;
+					const endPos = selection.head;
 					// Convert the absolute position to line and character
-					const line = cm.state.doc.lineAt(pos);
+					const line = cm.state.doc.lineAt(startPos);
 
 					// Scroll position
 					const rect = cm.scrollDOM.getBoundingClientRect();
@@ -22,20 +23,21 @@ module.exports = {
 
 					const result = {
 						line: line.number,
-						ch: pos - line.from,
-						scroll: scrollLine.number
+						ch: startPos - line.from,
+						scroll: scrollLine.number,
+						selection: endPos - startPos,
 					};
 					return result;
 				});
 
 				CodeMirror.registerCommand('rn.setCursor', function(message: any) {
 					const cm: EditorView = CodeMirror.editor;
-					const { line, ch, scroll } = message;
+					const { line, ch, scroll, selection } = message;
 					const lineInfo = cm.state.doc.line(line);
 					// Calculate the exact position by adding the character offset to the line start
 					const pos = lineInfo.from + ch;	
 					cm.dispatch({
-						selection: { anchor: pos },
+						selection: { anchor: pos, head: selection ? pos + selection : pos },
 						scrollIntoView: true,
 					});
 				});

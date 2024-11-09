@@ -53,6 +53,14 @@ joplin.plugins.register({
 				minimum: 1000,
 				maximum: 10000,
 			},
+			'resumenote.saveSelection': {
+				value: true,
+				type: SettingItemType.Bool,
+				public: true,
+				section: 'resumenote',
+				label: 'Save cursor selection',
+				description: 'Save the selected text in the cursor position.',
+			},
 			'resumenote.useUserData': {
 				value: false,
 				type: SettingItemType.Bool,
@@ -200,6 +208,10 @@ async function updateCursorPosition(): Promise<void> {
 	const cursor = await joplin.commands.execute('editor.execCommand', {
 		name: 'rn.getCursorAndScroll'
 	});
+	const saveSelection = await joplin.settings.value('resumenote.saveSelection');
+	if (!saveSelection) {
+		cursor.selection = null;
+	}
 
 	if (cursor) {
 		noteCursorMap[currentNoteId] = cursor;
