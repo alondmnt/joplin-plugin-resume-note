@@ -5,8 +5,14 @@ import { SettingItemType, MenuItemLocation, ContentScriptType, ModelType } from 
 let currentFolderId: string = '';
 let currentNoteId: string = '';
 let folderNoteMap: Record<string, string> = {};
-let noteCursorMap: Record<string, { line: number, ch: number }> = {};
+let noteCursorMap: Record<string, CursorPosition> = {};
 let useUserData: boolean = false;
+
+interface CursorPosition {
+	line: number;
+	ch: number;
+	scroll: number;
+}
 
 joplin.plugins.register({
 	onStart: async function() {
@@ -192,7 +198,7 @@ async function updateCursorPosition(): Promise<void> {
 	if (!currentNoteId) return;
 
 	const cursor = await joplin.commands.execute('editor.execCommand', {
-		name: 'getCursor'
+		name: 'rn.getCursorAndScroll'
 	});
 
 	if (cursor) {
@@ -205,10 +211,10 @@ async function updateCursorPosition(): Promise<void> {
 	}
 }
 
-async function loadCursorPosition(noteId: string): Promise<{ line: number, ch: number } | undefined> {
+async function loadCursorPosition(noteId: string): Promise<CursorPosition | undefined> {
   // Load from userData
 	if (useUserData) {
-		const savedCursor: { line: number, ch: number } = await joplin.data.userDataGet(ModelType.Note, currentNoteId, 'cursor');
+		const savedCursor: CursorPosition = await joplin.data.userDataGet(ModelType.Note, currentNoteId, 'cursor');
 		return savedCursor;
 	}
   // Load from memory
@@ -221,13 +227,13 @@ async function restoreCursorPosition(noteId: string): Promise<void> {
 		await joplin.commands.execute('editor.focus');
 		await new Promise(resolve => setTimeout(resolve, 100));
 		await joplin.commands.execute('editor.execCommand', {
-			name: 'setCursor',
-			args: [savedCursor]
+			name: 'rn.setCursor',
+			args: [ savedCursor ]
 		});
 		await new Promise(resolve => setTimeout(resolve, 100));
 		await joplin.commands.execute('editor.execCommand', {
-			name: 'scrollIntoView',
-			args: [savedCursor.line, savedCursor.ch]
+			name: 'rn.setScroll',
+			args: [ savedCursor ]
 		});
 	}
 }
