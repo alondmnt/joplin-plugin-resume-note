@@ -1,6 +1,6 @@
 {
   "name": "joplin-plugin-sticky-note",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "scripts": {
     "dist": "webpack --env joplin-plugin-config=buildMain && webpack --env joplin-plugin-config=buildExtraScripts && webpack --env joplin-plugin-config=createArchive",
     "prepare": "npm run dist",
@@ -28,8 +28,5 @@
     "typescript": "^4.8.2",
     "webpack": "^5.74.0",
     "webpack-cli": "^4.10.0"
-  },
-  "dependencies": {
-    "lodash.debounce": "^4.0.8"
   }
 }
