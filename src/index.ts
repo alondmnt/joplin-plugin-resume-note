@@ -7,6 +7,7 @@ let currentNoteId: string = '';
 let folderNoteMap: Record<string, string> = {};
 let noteCursorMap: Record<string, CursorPosition> = {};
 let useUserData: boolean = false;
+let saveSelection: boolean = true;
 
 interface CursorPosition {
 	line: number;
@@ -113,6 +114,7 @@ joplin.plugins.register({
 
     // Load the useUserData setting
     useUserData = await joplin.settings.value('resumenote.useUserData');
+		saveSelection = await joplin.settings.value('resumenote.saveSelection');
 
 		// Load the saved map on startup
 		const mapJson = await joplin.settings.value('resumenote.folderNoteMap');
@@ -167,6 +169,13 @@ joplin.plugins.register({
 			await restoreCursorPosition(currentNoteId);
 		});
 
+		// Update saveSelection when it changes
+		await joplin.settings.onChange(async (event: any) => {
+			if (event.keys.includes('resumenote.saveSelection')) {
+				saveSelection = await joplin.settings.value('resumenote.saveSelection');
+			}
+		});
+
 		// Also initialize both currentNoteId and currentFolderId in onStart
 		currentNoteId = await joplin.workspace.selectedNote().then(note => note.id);
 		if (currentNoteId) {
@@ -208,7 +217,6 @@ async function updateCursorPosition(): Promise<void> {
 	const cursor = await joplin.commands.execute('editor.execCommand', {
 		name: 'rn.getCursorAndScroll'
 	});
-	const saveSelection = await joplin.settings.value('resumenote.saveSelection');
 	if (!saveSelection) {
 		cursor.selection = null;
 	}
