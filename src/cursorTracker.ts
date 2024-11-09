@@ -52,7 +52,6 @@ module.exports = {
 					if (lineNumber > lineCount) {
 						lineNumber = lineCount;
 					}
-					console.error('setScroll', lineNumber);
 
 					// Get the position at the start of the line
 					const linePos = cm.state.doc.line(lineNumber).from;
