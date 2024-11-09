@@ -36,13 +36,13 @@ module.exports = {
 					const pos = lineInfo.from + ch;	
 					cm.dispatch({
 						selection: { anchor: pos },
-						scrollIntoView: false,
+						scrollIntoView: true,
 					});
 				});
 
 				CodeMirror.registerCommand('rn.setScroll', function(message: any) {
 					const cm = CodeMirror.editor;
-					const { line, scroll } = message;
+					const { line, ch, scroll } = message;
 
 					// Validate line number
 					let lineNumber = Math.max(1, scroll || line || 1);
