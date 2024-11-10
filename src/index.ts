@@ -255,7 +255,6 @@ async function updateCursorPosition(): Promise<void> {
 	if (!saveSelection) {
 		cursor.selection = null;
 	}
-	console.log('getCursorAndScroll for', currentNoteId, cursor);
 
 	if (cursor) {
 		// Update in-memory object
@@ -283,7 +282,6 @@ async function loadCursorPosition(noteId: string): Promise<CursorPosition | unde
 
 async function restoreCursorPosition(noteId: string): Promise<void> {
 	const savedCursor = await loadCursorPosition(noteId);
-	console.log('savedCursor for', noteId, savedCursor);
 	if (savedCursor) {
 		await joplin.commands.execute('editor.focus');
 		await new Promise(resolve => setTimeout(resolve, restoreDelay));
