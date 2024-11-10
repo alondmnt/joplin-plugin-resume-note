@@ -32,6 +32,13 @@ joplin.plugins.register({
 				section: 'resumenote',
 				label: 'Folder Note Map',
 			},
+			'resumenote.noteCursorMap': {
+				value: '{}',
+				type: SettingItemType.String,
+				public: false,
+				section: 'resumenote',
+				label: 'Note Cursor Map',
+			},
 			'resumenote.lastNoteId': {
 				value: '',
 				type: SettingItemType.String,
@@ -81,7 +88,7 @@ joplin.plugins.register({
 				public: true,
 				section: 'resumenote',
 				label: 'Sync data using note properties (Experimental)',
-				description: 'Store folder and cursor data using note properties instead of app settings. Data will sync across devices and be retained after restart. When disabled, all data will be cleared from the note properties.',
+				description: 'Store folder and cursor data using note properties instead of app settings. Data will sync across devices. When disabled, all data will be cleared from the note properties.',
 			},
 		});
 
@@ -131,8 +138,8 @@ joplin.plugins.register({
 		restoreDelay = await joplin.settings.value('resumenote.restoreDelay');
 
 		// Load the saved map on startup
-		const mapJson = await joplin.settings.value('resumenote.folderNoteMap');
-		folderNoteMap = JSON.parse(mapJson);
+		folderNoteMap = JSON.parse(await joplin.settings.value('resumenote.folderNoteMap'));
+		noteCursorMap = JSON.parse(await joplin.settings.value('resumenote.noteCursorMap'));
 
 		// Initialize with current note and folder
 		const lastNoteId = await joplin.settings.value('resumenote.lastNoteId');
@@ -141,13 +148,13 @@ joplin.plugins.register({
 			await joplin.commands.execute('openNote', homeNoteId);
       setTimeout(async () => {
         await restoreCursorPosition(homeNoteId);
-      }, 500);
+      }, 2*restoreDelay);
 
 		} else if (lastNoteId) {
 			await joplin.commands.execute('openNote', lastNoteId);
       setTimeout(async () => {
         await restoreCursorPosition(lastNoteId);
-      }, 500);
+      }, 2*restoreDelay);
 		}
 
 		// Periodic cursor position update
@@ -172,7 +179,7 @@ joplin.plugins.register({
 				const savedNoteId = await loadFolderNoteMap(newFolderId);
 				if (savedNoteId) {
 					// Navigate to the saved note
-						await joplin.commands.execute('openNote', savedNoteId);
+					await joplin.commands.execute('openNote', savedNoteId);
 				}
 
 			} else {
@@ -200,8 +207,6 @@ joplin.plugins.register({
 					await clearSettingsData();
 				}
 			}
-			await new Promise(resolve => setTimeout(resolve, restoreDelay));
-			await restoreCursorPosition(currentNoteId);
 		});
 
 		// Initialize both currentNoteId and currentFolderId in onStart
@@ -253,11 +258,15 @@ async function updateCursorPosition(): Promise<void> {
 	console.log('getCursorAndScroll for', currentNoteId, cursor);
 
 	if (cursor) {
+		// Update in-memory object
 		noteCursorMap[currentNoteId] = cursor;
 		
 		// Add userData storage if enabled
 		if (useUserData) {
 			await joplin.data.userDataSet(ModelType.Note, currentNoteId, 'cursor', cursor);
+		} else {
+			// Update settings
+			await joplin.settings.setValue('resumenote.noteCursorMap', JSON.stringify(noteCursorMap));
 		}
 	}
 }
@@ -328,7 +337,8 @@ async function clearUserData(): Promise<void> {
 	}
 }
 
-// Clear folderNoteMap in settings
+// Clear folderNoteMap and noteCursorMap in settings
 async function clearSettingsData(): Promise<void> {
 	await joplin.settings.setValue('resumenote.folderNoteMap', '{}');
+	await joplin.settings.setValue('resumenote.noteCursorMap', '{}');
 }
