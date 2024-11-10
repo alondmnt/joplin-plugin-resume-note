@@ -32,7 +32,7 @@ module.exports = {
 
 				CodeMirror.registerCommand('rn.setCursor', function(message: any) {
 					const cm: EditorView = CodeMirror.editor;
-					const { line, ch, scroll, selection } = message;
+					const { line, ch, selection } = message;
 					const lineInfo = cm.state.doc.line(line);
 					// Calculate the exact position by adding the character offset to the line start
 					const pos = lineInfo.from + ch;	
@@ -44,7 +44,7 @@ module.exports = {
 
 				CodeMirror.registerCommand('rn.setScroll', function(message: any) {
 					const cm = CodeMirror.editor;
-					const { line, ch, scroll } = message;
+					const { line, scroll } = message;
 
 					// Validate line number
 					let lineNumber = Math.max(1, scroll || line || 1);

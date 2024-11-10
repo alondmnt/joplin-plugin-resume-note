@@ -190,6 +190,8 @@ joplin.plugins.register({
 			if (event.keys.includes('resumenote.restoreDelay')) {
 				restoreDelay = await joplin.settings.value('resumenote.restoreDelay');
 			}
+			await new Promise(resolve => setTimeout(resolve, restoreDelay));
+			await restoreCursorPosition(currentNoteId);
 		});
 
 		// Initialize both currentNoteId and currentFolderId in onStart
@@ -237,6 +239,7 @@ async function updateCursorPosition(): Promise<void> {
 	if (!saveSelection) {
 		cursor.selection = null;
 	}
+	console.log('getCursorAndScroll for', currentNoteId, cursor);
 
 	if (cursor) {
 		noteCursorMap[currentNoteId] = cursor;
@@ -260,16 +263,20 @@ async function loadCursorPosition(noteId: string): Promise<CursorPosition | unde
 
 async function restoreCursorPosition(noteId: string): Promise<void> {
 	const savedCursor = await loadCursorPosition(noteId);
+	console.log('savedCursor for', noteId, savedCursor);
 	if (savedCursor) {
 		await joplin.commands.execute('editor.focus');
 		await new Promise(resolve => setTimeout(resolve, restoreDelay));
 		await joplin.commands.execute('editor.execCommand', {
 			name: 'rn.setCursor',
-			args: [ savedCursor ]
+			args: [ { line: savedCursor.scroll, ch: 1, selection: 0 } ]
 		});
-		await new Promise(resolve => setTimeout(resolve, restoreDelay));
 		await joplin.commands.execute('editor.execCommand', {
 			name: 'rn.setScroll',
+			args: [ savedCursor ]
+		});
+		await joplin.commands.execute('editor.execCommand', {
+			name: 'rn.setCursor',
 			args: [ savedCursor ]
 		});
 	}
