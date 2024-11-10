@@ -9,6 +9,7 @@ let noteCursorMap: Record<string, CursorPosition> = {};
 let useUserData: boolean = false;
 let saveSelection: boolean = true;
 let restoreDelay: number = 100;
+let noteNotLoaded: boolean = true;
 
 interface CursorPosition {
 	line: number;
@@ -154,6 +155,7 @@ joplin.plugins.register({
 
 		// Update cursor position on note selection change
 		await joplin.workspace.onNoteSelectionChange(async () => {
+			noteNotLoaded = true;
 			const note = await joplin.workspace.selectedNote();
 			if (!note) return;
 
@@ -232,6 +234,7 @@ async function loadFolderNoteMap(folderId: string): Promise<string> {
 // Functions to handle cursor position
 async function updateCursorPosition(): Promise<void> {
 	if (!currentNoteId) return;
+	if (noteNotLoaded) return;
 
 	const cursor = await joplin.commands.execute('editor.execCommand', {
 		name: 'rn.getCursorAndScroll'
@@ -280,4 +283,5 @@ async function restoreCursorPosition(noteId: string): Promise<void> {
 			args: [ savedCursor ]
 		});
 	}
+	noteNotLoaded = false;
 }
