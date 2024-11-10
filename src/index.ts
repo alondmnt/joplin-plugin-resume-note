@@ -315,7 +315,8 @@ async function clearUserData(): Promise<void> {
 		hasMore = notes.has_more;
 		for (const note of notes.items) {
 			// Only delete if the property exists
-			if (await joplin.data.userDataGet(ModelType.Note, note.id, 'cursor')) {
+			const savedCursor: any = await joplin.data.userDataGet(ModelType.Note, note.id, 'cursor');
+			if (savedCursor !== undefined) {
 				await joplin.data.userDataDelete(ModelType.Note, note.id, 'cursor');
 			}
 		}
@@ -330,7 +331,8 @@ async function clearUserData(): Promise<void> {
 		hasMore = folders.has_more;
 		for (const folder of folders.items) {
 			// Only delete if the property exists
-			if (await joplin.data.userDataGet(ModelType.Folder, folder.id, 'note')) {
+			const savedNoteId: any = await joplin.data.userDataGet(ModelType.Folder, folder.id, 'note');
+			if (savedNoteId !== undefined) {
 				await joplin.data.userDataDelete(ModelType.Folder, folder.id, 'note');
 			}
 		}
