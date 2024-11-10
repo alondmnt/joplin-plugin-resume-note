@@ -182,7 +182,7 @@ joplin.plugins.register({
 			await restoreCursorPosition(currentNoteId);
 		});
 
-		// Update saveSelection when it changes
+		// Update settings
 		await joplin.settings.onChange(async (event: any) => {
 			if (event.keys.includes('resumenote.saveSelection')) {
 				saveSelection = await joplin.settings.value('resumenote.saveSelection');
@@ -192,10 +192,11 @@ joplin.plugins.register({
 			}
 		});
 
-		// Also initialize both currentNoteId and currentFolderId in onStart
-		currentNoteId = await joplin.workspace.selectedNote().then(note => note.id);
-		if (currentNoteId) {
-			currentFolderId = await joplin.workspace.selectedNote().then(note => note.parent_id);
+		// Initialize both currentNoteId and currentFolderId in onStart
+		const note = await joplin.workspace.selectedNote();
+		if (note) {
+			currentFolderId = note.parent_id;
+			currentNoteId = note.id;
 		}
 	},
 });
