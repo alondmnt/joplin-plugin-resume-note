@@ -8,6 +8,7 @@ let folderNoteMap: Record<string, string> = {};
 let noteCursorMap: Record<string, CursorPosition> = {};
 let useUserData: boolean = false;
 let saveSelection: boolean = true;
+let restoreDelay: number = 100;
 
 interface CursorPosition {
 	line: number;
@@ -49,10 +50,21 @@ joplin.plugins.register({
 				type: SettingItemType.Int,
 				public: true,
 				section: 'resumenote',
-				label: 'Cursor position refresh interval (ms)',
-				description: 'How often to save the cursor position (in milliseconds). Requires restart.',
-				minimum: 1000,
+				label: 'Refresh interval for cursor and scroll position (ms)',
+				description: 'How often to save the cursor and scroll position (in ms). Requires restart.',
+				minimum: 500,
 				maximum: 10000,
+				step: 100,
+			},
+			'resumenote.restoreDelay': {
+				value: 100,
+				type: SettingItemType.Int,
+				public: true,
+				section: 'resumenote',
+				label: 'Delay before setting cursor and scroll position (in ms)',
+				minimum: 0,
+				maximum: 2000,
+				step: 50,
 			},
 			'resumenote.saveSelection': {
 				value: true,
@@ -115,6 +127,7 @@ joplin.plugins.register({
     // Load the useUserData setting
     useUserData = await joplin.settings.value('resumenote.useUserData');
 		saveSelection = await joplin.settings.value('resumenote.saveSelection');
+		restoreDelay = await joplin.settings.value('resumenote.restoreDelay');
 
 		// Load the saved map on startup
 		const mapJson = await joplin.settings.value('resumenote.folderNoteMap');
@@ -173,6 +186,9 @@ joplin.plugins.register({
 		await joplin.settings.onChange(async (event: any) => {
 			if (event.keys.includes('resumenote.saveSelection')) {
 				saveSelection = await joplin.settings.value('resumenote.saveSelection');
+			}
+			if (event.keys.includes('resumenote.restoreDelay')) {
+				restoreDelay = await joplin.settings.value('resumenote.restoreDelay');
 			}
 		});
 
@@ -245,12 +261,12 @@ async function restoreCursorPosition(noteId: string): Promise<void> {
 	const savedCursor = await loadCursorPosition(noteId);
 	if (savedCursor) {
 		await joplin.commands.execute('editor.focus');
-		await new Promise(resolve => setTimeout(resolve, 100));
+		await new Promise(resolve => setTimeout(resolve, restoreDelay));
 		await joplin.commands.execute('editor.execCommand', {
 			name: 'rn.setCursor',
 			args: [ savedCursor ]
 		});
-		await new Promise(resolve => setTimeout(resolve, 100));
+		await new Promise(resolve => setTimeout(resolve, restoreDelay));
 		await joplin.commands.execute('editor.execCommand', {
 			name: 'rn.setScroll',
 			args: [ savedCursor ]
