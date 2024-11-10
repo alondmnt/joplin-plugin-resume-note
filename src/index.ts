@@ -81,7 +81,7 @@ joplin.plugins.register({
 				public: true,
 				section: 'resumenote',
 				label: 'Sync data using note properties (Experimental)',
-				description: 'Store folder and cursor data using note properties instead of settings. Data will sync across devices and be retained after restart. Requires restart.',
+				description: 'Store folder and cursor data using note properties instead of app settings. Data will sync across devices and be retained after restart. When disabled, all data will be cleared from the note properties.',
 			},
 		});
 
@@ -192,6 +192,14 @@ joplin.plugins.register({
 			if (event.keys.includes('resumenote.restoreDelay')) {
 				restoreDelay = await joplin.settings.value('resumenote.restoreDelay');
 			}
+			if (event.keys.includes('resumenote.useUserData')) {
+				useUserData = await joplin.settings.value('resumenote.useUserData');
+				if (!useUserData) {
+					await clearUserData();
+				} else {
+					await clearSettingsData();
+				}
+			}
 			await new Promise(resolve => setTimeout(resolve, restoreDelay));
 			await restoreCursorPosition(currentNoteId);
 		});
@@ -284,4 +292,43 @@ async function restoreCursorPosition(noteId: string): Promise<void> {
 		});
 	}
 	noteNotLoaded = false;
+}
+
+// Clear all note / folder properties
+async function clearUserData(): Promise<void> {
+	let hasMore = true;
+	let page = 1;
+	while (hasMore) {
+		const notes = await joplin.data.get(['notes'], {
+			fields: ['id'],
+			page: page++,
+		});
+		hasMore = notes.has_more;
+		for (const note of notes.items) {
+			// Only delete if the property exists
+			if (await joplin.data.userDataGet(ModelType.Note, note.id, 'cursor')) {
+				await joplin.data.userDataDelete(ModelType.Note, note.id, 'cursor');
+			}
+		}
+	}
+	hasMore = true;
+	page = 1;
+	while (hasMore) {
+		const folders = await joplin.data.get(['folders'], {
+			fields: ['id'],
+			page: page++,
+		});
+		hasMore = folders.has_more;
+		for (const folder of folders.items) {
+			// Only delete if the property exists
+			if (await joplin.data.userDataGet(ModelType.Folder, folder.id, 'note')) {
+				await joplin.data.userDataDelete(ModelType.Folder, folder.id, 'note');
+			}
+		}
+	}
+}
+
+// Clear folderNoteMap in settings
+async function clearSettingsData(): Promise<void> {
+	await joplin.settings.setValue('resumenote.folderNoteMap', '{}');
 }
