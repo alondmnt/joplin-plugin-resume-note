@@ -8,7 +8,7 @@ let folderNoteMap: Record<string, string> = {};
 let noteCursorMap: Record<string, CursorPosition> = {};
 let useUserData: boolean = false;
 let saveSelection: boolean = true;
-let restoreDelay: number = 100;
+let restoreDelay: number = 300;
 let noteNotLoaded: boolean = true;
 
 interface CursorPosition {
@@ -65,7 +65,7 @@ joplin.plugins.register({
 				step: 100,
 			},
 			'resumenote.restoreDelay': {
-				value: 100,
+				value: 300,
 				type: SettingItemType.Int,
 				public: true,
 				section: 'resumenote',
