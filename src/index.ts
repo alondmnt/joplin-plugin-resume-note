@@ -94,6 +94,24 @@ joplin.plugins.register({
 
 		// Register commands
 		await joplin.commands.register({
+			name: 'resumenote.clearUserData',
+			label: 'Clear Resume Note user data',
+			execute: async () => {
+				folderNoteMap = {};
+				noteCursorMap = {};
+				await clearUserData();
+			},
+		});
+		await joplin.commands.register({
+			name: 'resumenote.clearSettingsData',
+			label: 'Clear Resume Note settings data',
+			execute: async () => {
+				folderNoteMap = {};
+				noteCursorMap = {};
+				await clearSettingsData();
+			},
+		});
+		await joplin.commands.register({
 			name: 'resumenote.setHomeNote',
 			label: 'Set as home note',
 			execute: async () => {
