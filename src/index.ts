@@ -144,14 +144,14 @@ joplin.plugins.register({
 		);
 
 		// Register the content script
-    await joplin.contentScripts.register(
-      ContentScriptType.CodeMirrorPlugin,
-    'cursorTracker',
-    './cursorTracker.js'
-    );
+		await joplin.contentScripts.register(
+		ContentScriptType.CodeMirrorPlugin,
+		'cursorTracker',
+		'./cursorTracker.js'
+		);
 
-    // Load the useUserData setting
-    useUserData = await joplin.settings.value('resumenote.useUserData');
+		// Load the useUserData setting
+		useUserData = await joplin.settings.value('resumenote.useUserData');
 		saveSelection = await joplin.settings.value('resumenote.saveSelection');
 		restoreDelay = await joplin.settings.value('resumenote.restoreDelay');
 
@@ -164,16 +164,16 @@ joplin.plugins.register({
 		const homeNoteId = await joplin.settings.value('resumenote.homeNoteId');
 		if (homeNoteId) {
 			await joplin.commands.execute('openNote', homeNoteId);
-      setTimeout(async () => {
-        await restoreCursorPosition(homeNoteId);
-      }, 2*restoreDelay);
+		setTimeout(async () => {
+			await restoreCursorPosition(homeNoteId);
+		}, 2*restoreDelay);
 
-		} else if (lastNoteId) {
-			await joplin.commands.execute('openNote', lastNoteId);
-      setTimeout(async () => {
-        await restoreCursorPosition(lastNoteId);
-      }, 2*restoreDelay);
-		}
+			} else if (lastNoteId) {
+				await joplin.commands.execute('openNote', lastNoteId);
+		setTimeout(async () => {
+			await restoreCursorPosition(lastNoteId);
+		}, 2*restoreDelay);
+			}
 
 		// Periodic cursor position update
 		setInterval(updateCursorPosition, await joplin.settings.value('resumenote.refreshInterval'));
@@ -191,7 +191,7 @@ joplin.plugins.register({
 			await joplin.settings.setValue('resumenote.lastNoteId', currentNoteId);
 
 			if (newFolderId !== currentFolderId) {
-        currentFolderId = newFolderId;
+				currentFolderId = newFolderId;
 
 				// Check if we have a saved note for the new folder
 				const savedNoteId = await loadFolderNoteMap(newFolderId);
@@ -239,13 +239,13 @@ joplin.plugins.register({
 // Helper functions to update / load both the in-memory map, settings and user data
 async function updateFolderNoteMap(folderId: string, noteId: string): Promise<void> {  
   if (useUserData) {
-    // Store in userData
+    	// Store in userData
 		await joplin.data.userDataSet(ModelType.Folder, folderId, `note`, noteId);
 
 	} else {
-    // Update in-memory object
-    folderNoteMap[folderId] = noteId;
-    // Update settings
+		// Update in-memory object
+		folderNoteMap[folderId] = noteId;
+		// Update settings
 		await joplin.settings.setValue('resumenote.folderNoteMap', JSON.stringify(folderNoteMap));
 	}
 }
@@ -294,7 +294,7 @@ async function loadCursorPosition(noteId: string): Promise<CursorPosition | unde
 		const savedCursor: CursorPosition = await joplin.data.userDataGet(ModelType.Note, currentNoteId, 'cursor');
 		return savedCursor;
 	}
-  // Load from memory
+  	// Load from memory
 	return noteCursorMap[noteId];
 }
 
