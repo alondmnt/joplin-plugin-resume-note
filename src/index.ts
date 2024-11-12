@@ -6,6 +6,7 @@ let currentFolderId: string = '';
 let currentNoteId: string = '';
 let folderNoteMap: Record<string, string> = {};
 let noteCursorMap: Record<string, CursorPosition> = {};
+let saveFolderNote: boolean = true;
 let useUserData: boolean = false;
 let saveSelection: boolean = true;
 let restoreDelay: number = 300;
@@ -31,6 +32,13 @@ joplin.plugins.register({
 				public: false,
 				section: 'resumenote',
 				label: 'Folder Note Map',
+			},
+			'resumenote.saveFolderNote': {
+				value: true,
+				type: SettingItemType.Bool,
+				public: true,
+				section: 'resumenote',
+				label: 'Save the last active note in each folder. Requires restart.',
 			},
 			'resumenote.noteCursorMap': {
 				value: '{}',
@@ -166,13 +174,18 @@ joplin.plugins.register({
 		);
 
 		// Load the useUserData setting
+		saveFolderNote = await joplin.settings.value('resumenote.saveFolderNote');
 		useUserData = await joplin.settings.value('resumenote.useUserData');
 		saveSelection = await joplin.settings.value('resumenote.saveSelection');
 		restoreDelay = await joplin.settings.value('resumenote.restoreDelay');
 
 		// Load the saved map on startup
-		folderNoteMap = JSON.parse(await joplin.settings.value('resumenote.folderNoteMap'));
-		noteCursorMap = JSON.parse(await joplin.settings.value('resumenote.noteCursorMap'));
+		if (!useUserData) {
+			if (saveFolderNote) {
+				folderNoteMap = JSON.parse(await joplin.settings.value('resumenote.folderNoteMap'));
+			}
+			noteCursorMap = JSON.parse(await joplin.settings.value('resumenote.noteCursorMap'));
+		}
 
 		// Initialize with current note and folder
 		const lastNoteId = await joplin.settings.value('resumenote.lastNoteId');
@@ -253,8 +266,9 @@ joplin.plugins.register({
 
 // Helper functions to update / load both the in-memory map, settings and user data
 async function updateFolderNoteMap(folderId: string, noteId: string): Promise<void> {  
-  if (useUserData) {
-    	// Store in userData
+	if (!saveFolderNote) return;
+	if (useUserData) {
+		// Store in userData
 		await joplin.data.userDataSet(ModelType.Folder, folderId, `note`, noteId);
 
 	} else {
@@ -266,15 +280,16 @@ async function updateFolderNoteMap(folderId: string, noteId: string): Promise<vo
 }
 
 async function loadFolderNoteMap(folderId: string): Promise<string> {
-  let noteId: string;
-  if (useUserData) {
-    // Load from userData
-    noteId = await joplin.data.userDataGet(ModelType.Folder, folderId, `note`);
-  } else {
-    // Load from settings / memory
-    noteId = folderNoteMap[folderId];
-  }
-  return noteId;
+	if (!saveFolderNote) return '';
+	let noteId: string;
+	if (useUserData) {
+	// Load from userData
+	noteId = await joplin.data.userDataGet(ModelType.Folder, folderId, `note`);
+	} else {
+	// Load from settings / memory
+	noteId = folderNoteMap[folderId];
+	}
+	return noteId;
 }
 
 // Functions to handle cursor position
