@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { SettingItemType, MenuItemLocation, ContentScriptType, ModelType } from 'api/types';
+import { SettingItemType, MenuItemLocation, ContentScriptType, ModelType, ToolbarButtonLocation } from 'api/types';
 
 // In-memory map
 let currentFolderId: string = '';
@@ -143,6 +143,17 @@ joplin.plugins.register({
 			},
 		});
 		await joplin.commands.register({
+			name: 'resumenote.goToHomeNote',
+			label: 'Go to home note',
+			iconName: 'fas fa-home',
+			execute: async () => {
+				const homeNoteId = await joplin.settings.value('resumenote.homeNoteId');
+				if (homeNoteId) {
+					await joplin.commands.execute('openNote', homeNoteId);
+				}
+			},
+		});
+		await joplin.commands.register({
 			name: 'resumenote.resetHomeNote',
 			label: 'Reset home note',
 			execute: async () => {
@@ -155,6 +166,11 @@ joplin.plugins.register({
 		await joplin.views.menuItems.create(
 			'resumenote.setHomeNoteMenuItem',
 			'resumenote.setHomeNote',
+			MenuItemLocation.Note
+		);
+		await joplin.views.menuItems.create(
+			'resumenote.goToHomeNoteMenuItem',
+			'resumenote.goToHomeNote',
 			MenuItemLocation.Note
 		);
 		await joplin.views.menuItems.create(
@@ -178,6 +194,8 @@ joplin.plugins.register({
 		useUserData = await joplin.settings.value('resumenote.useUserData');
 		saveSelection = await joplin.settings.value('resumenote.saveSelection');
 		restoreDelay = await joplin.settings.value('resumenote.restoreDelay');
+		const lastNoteId = await joplin.settings.value('resumenote.lastNoteId');
+		const homeNoteId = await joplin.settings.value('resumenote.homeNoteId');
 
 		// Load the saved map on startup
 		if (!useUserData) {
@@ -188,20 +206,23 @@ joplin.plugins.register({
 		}
 
 		// Initialize with current note and folder
-		const lastNoteId = await joplin.settings.value('resumenote.lastNoteId');
-		const homeNoteId = await joplin.settings.value('resumenote.homeNoteId');
 		if (homeNoteId) {
+			await joplin.views.toolbarButtons.create(
+				'resumenote.goToHomeNoteToolbarButton',
+				'resumenote.goToHomeNote',
+				ToolbarButtonLocation.NoteToolbar
+			);
 			await joplin.commands.execute('openNote', homeNoteId);
-		setTimeout(async () => {
-			await restoreCursorPosition(homeNoteId);
-		}, 2*restoreDelay);
+			setTimeout(async () => {
+				await restoreCursorPosition(homeNoteId);
+			}, 2*restoreDelay);
 
-			} else if (lastNoteId) {
-				await joplin.commands.execute('openNote', lastNoteId);
-		setTimeout(async () => {
-			await restoreCursorPosition(lastNoteId);
-		}, 2*restoreDelay);
-			}
+		} else if (lastNoteId) {
+			await joplin.commands.execute('openNote', lastNoteId);
+			setTimeout(async () => {
+				await restoreCursorPosition(lastNoteId);
+			}, 2*restoreDelay);
+		}
 
 		// Periodic cursor position update
 		setInterval(updateCursorPosition, await joplin.settings.value('resumenote.refreshInterval'));
