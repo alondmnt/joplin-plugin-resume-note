@@ -61,6 +61,13 @@ joplin.plugins.register({
 				section: 'resumenote',
 				label: 'Home note ID',
 			},
+			'resumenote.startHomeNote': {
+				value: true,
+				type: SettingItemType.Bool,
+				public: true,
+				section: 'resumenote',
+				label: 'Go to home note on startup',
+			},
 			'resumenote.refreshInterval': {
 				value: 2000,
 				type: SettingItemType.Int,
@@ -194,8 +201,6 @@ joplin.plugins.register({
 		useUserData = await joplin.settings.value('resumenote.useUserData');
 		saveSelection = await joplin.settings.value('resumenote.saveSelection');
 		restoreDelay = await joplin.settings.value('resumenote.restoreDelay');
-		const lastNoteId = await joplin.settings.value('resumenote.lastNoteId');
-		const homeNoteId = await joplin.settings.value('resumenote.homeNoteId');
 
 		// Load the saved map on startup
 		if (!useUserData) {
@@ -206,12 +211,17 @@ joplin.plugins.register({
 		}
 
 		// Initialize with current note and folder
+		const lastNoteId = await joplin.settings.value('resumenote.lastNoteId');
+		const homeNoteId = await joplin.settings.value('resumenote.homeNoteId');
+		const goToHomeNoteOnStartup = await joplin.settings.value('resumenote.startHomeNote');
 		if (homeNoteId) {
 			await joplin.views.toolbarButtons.create(
 				'resumenote.goToHomeNoteToolbarButton',
 				'resumenote.goToHomeNote',
 				ToolbarButtonLocation.NoteToolbar
 			);
+		}
+		if (homeNoteId && goToHomeNoteOnStartup) {
 			await joplin.commands.execute('openNote', homeNoteId);
 			setTimeout(async () => {
 				await restoreCursorPosition(homeNoteId);
