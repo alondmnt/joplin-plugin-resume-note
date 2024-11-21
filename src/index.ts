@@ -157,6 +157,10 @@ joplin.plugins.register({
 				const homeNoteId = await joplin.settings.value('resumenote.homeNoteId');
 				if (homeNoteId) {
 					await joplin.commands.execute('openNote', homeNoteId);
+					// Repeat twice, to ensure that we don't switch to a different note
+					setTimeout(async () => {
+						await joplin.commands.execute('openNote', homeNoteId);
+					}, 2*restoreDelay);
 				}
 			},
 		});
