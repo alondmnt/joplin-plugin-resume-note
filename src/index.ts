@@ -332,6 +332,10 @@ async function updateCursorPosition(): Promise<void> {
 	if (!currentNoteId) return;
 	if (noteNotLoaded) return;
 
+    // Check if we're in code view
+    const isCodeView = await joplin.settings.globalValue('editor.codeView');
+    if (!isCodeView) return;  // Only proceed if in code view
+
 	const cursor = await joplin.commands.execute('editor.execCommand', {
 		name: 'rn.getCursorAndScroll'
 	});
