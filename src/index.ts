@@ -142,11 +142,12 @@ joplin.plugins.register({
 			name: 'resumenote.setHomeNote',
 			label: 'Set as home note',
 			execute: async () => {
-				const note = await joplin.workspace.selectedNote();
+				let note = await joplin.workspace.selectedNote();
 				if (note) {
 					await joplin.settings.setValue('resumenote.homeNoteId', note.id);
 					await joplin.views.dialogs.showMessageBox('Current note set as home note');
 				}
+				note = clearObjectReferences(note);
 			},
 		});
 		await joplin.commands.register({
@@ -244,11 +245,12 @@ joplin.plugins.register({
 		// Update cursor position on note selection change
 		await joplin.workspace.onNoteSelectionChange(async () => {
 			noteNotLoaded = true;
-			const note = await joplin.workspace.selectedNote();
+			let note = await joplin.workspace.selectedNote();
 			if (!note) return;
 
 			currentNoteId = note.id;
 			const newFolderId = note.parent_id;
+			note = clearObjectReferences(note);
 
 			// Update the last note ID
 			await joplin.settings.setValue('resumenote.lastNoteId', currentNoteId);
@@ -291,11 +293,12 @@ joplin.plugins.register({
 		});
 
 		// Initialize both currentNoteId and currentFolderId in onStart
-		const note = await joplin.workspace.selectedNote();
+		let note = await joplin.workspace.selectedNote();
 		if (note) {
 			currentFolderId = note.parent_id;
 			currentNoteId = note.id;
 		}
+		note = clearObjectReferences(note);
 	},
 });
 
@@ -405,6 +408,7 @@ async function clearUserData(): Promise<void> {
 				await joplin.data.userDataDelete(ModelType.Note, note.id, 'cursor');
 			}
 		}
+		clearObjectReferences(notes);
 	}
 	hasMore = true;
 	page = 1;
@@ -421,6 +425,7 @@ async function clearUserData(): Promise<void> {
 				await joplin.data.userDataDelete(ModelType.Folder, folder.id, 'note');
 			}
 		}
+		clearObjectReferences(folders);
 	}
 }
 
@@ -428,4 +433,16 @@ async function clearUserData(): Promise<void> {
 async function clearSettingsData(): Promise<void> {
 	await joplin.settings.setValue('resumenote.folderNoteMap', '{}');
 	await joplin.settings.setValue('resumenote.noteCursorMap', '{}');
+}
+
+export function clearObjectReferences(obj: any): null {
+	if (!obj) { return null; }
+
+	// Remove references to object properties
+	for (const prop in obj) {
+		obj[prop] = null;
+	}
+	obj = null;
+
+	return null;
 }
