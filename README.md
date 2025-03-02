@@ -1,5 +1,7 @@
 # ↺ Resume Note
 
+![downloads](https://img.shields.io/badge/dynamic/json?color=brightgreen&label=downloads&query=%24.totalDownloads&url=https%3A%2F%2Fjoplin-plugin-downloads.vercel.app%2Fapi%3Fplugin%3Djoplin.plugin.alondmnt.sticky-note)
+
 A [Joplin](https://joplinapp.org/) plugin to continue editing the last active note in each notebook, and go back to the last cursor position in the Markdown editor.
 
 ## Features
