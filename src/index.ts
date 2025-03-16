@@ -253,24 +253,14 @@ joplin.plugins.register({
 			);
 		}
 		const toggleEditor = await joplin.settings.value('resumenote.toggleEditor');
-		if (homeNoteId && goToHomeNoteOnStartup) {
-			await joplin.commands.execute('openNote', homeNoteId);
-			if (versionInfo.toggleEditorSupport) {
-			}
+		let startupNote = (homeNoteId && goToHomeNoteOnStartup) ? homeNoteId : lastNoteId;
+		if (startupNote) {
+			await joplin.commands.execute('openNote', startupNote);
 			setTimeout(async () => {
-				if (toggleEditor) {
+				if (versionInfo.toggleEditorSupport && toggleEditor) {
 					await joplin.commands.execute('toggleVisiblePanes');
 				}
-				await restoreCursorPosition(homeNoteId);
-			}, 2*restoreDelay);
-
-		} else if (lastNoteId) {
-			await joplin.commands.execute('openNote', lastNoteId);
-			setTimeout(async () => {
-				if (toggleEditor) {
-					await joplin.commands.execute('toggleVisiblePanes');
-				}
-				await restoreCursorPosition(lastNoteId);
+				await restoreCursorPosition(startupNote);
 			}, 2*restoreDelay);
 		}
 
