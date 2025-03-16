@@ -382,9 +382,16 @@ async function updateCursorPosition(): Promise<void> {
     const isCodeView = await joplin.settings.globalValue('editor.codeView');
     if (!isCodeView) return;  // Only proceed if in code view
 
-	const cursor = await joplin.commands.execute('editor.execCommand', {
-		name: 'rn.getCursorAndScroll'
-	});
+	let cursor: { line: number, ch: number, scroll: number, selection: number };
+	try {
+		cursor = await joplin.commands.execute('editor.execCommand', {
+			name: 'rn.getCursorAndScroll'
+		});
+	} catch (error) {
+		// If the command fails, it means the editor is not available
+		return;
+	}
+
 	if (!saveSelection) {
 		cursor.selection = null;
 	}
