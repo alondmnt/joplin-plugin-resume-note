@@ -21,6 +21,7 @@ interface CursorPosition {
 // Get the version of Joplin
 let versionInfo = {
 	toggleEditorSupport: null,
+	mobile: null
 };
 
 async function initializeVersionInfo() {
@@ -29,6 +30,7 @@ async function initializeVersionInfo() {
 		version.platform === 'mobile' && 
 		parseInt(version.version.split('.')[0]) >= 3 && 
 		parseInt(version.version.split('.')[1]) >= 2;
+	versionInfo.mobile = version.platform === 'mobile';
 }
 
 joplin.plugins.register({
@@ -179,7 +181,7 @@ joplin.plugins.register({
 				if (homeNoteId) {
 					await joplin.commands.execute('openNote', homeNoteId);
 					// Repeat twice, to ensure that we don't switch to a different note
-					if (!versionInfo.toggleEditorSupport) {
+					if (!versionInfo.mobile) {
 						setTimeout(async () => {
 							await joplin.commands.execute('openNote', homeNoteId);
 						}, 2*restoreDelay);
@@ -284,7 +286,12 @@ joplin.plugins.register({
 				// Wait for the note to be opened for 100 ms
 				await new Promise(resolve => setTimeout(resolve, 100));
 				const toggleEditor = await joplin.settings.value('resumenote.toggleEditor');
-				if (toggleEditor) {
+				// Check the age of the note since its creation time
+				const createdTime = note.created_time;
+				const currentTime = Date.now();
+				const noteAge = currentTime - createdTime;
+				// Note must be older than 10 seconds
+				if (toggleEditor && noteAge > 1000*10) {
 					await joplin.commands.execute('toggleVisiblePanes');
 				}
 			}
