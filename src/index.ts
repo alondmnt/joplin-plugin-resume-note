@@ -250,15 +250,24 @@ joplin.plugins.register({
 				ToolbarButtonLocation.NoteToolbar
 			);
 		}
+		const toggleEditor = await joplin.settings.value('resumenote.toggleEditor');
 		if (homeNoteId && goToHomeNoteOnStartup) {
 			await joplin.commands.execute('openNote', homeNoteId);
+			if (versionInfo.toggleEditorSupport) {
+			}
 			setTimeout(async () => {
+				if (toggleEditor) {
+					await joplin.commands.execute('toggleVisiblePanes');
+				}
 				await restoreCursorPosition(homeNoteId);
 			}, 2*restoreDelay);
 
 		} else if (lastNoteId) {
 			await joplin.commands.execute('openNote', lastNoteId);
 			setTimeout(async () => {
+				if (toggleEditor) {
+					await joplin.commands.execute('toggleVisiblePanes');
+				}
 				await restoreCursorPosition(lastNoteId);
 			}, 2*restoreDelay);
 		}
