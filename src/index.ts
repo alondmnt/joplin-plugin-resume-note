@@ -179,9 +179,11 @@ joplin.plugins.register({
 				if (homeNoteId) {
 					await joplin.commands.execute('openNote', homeNoteId);
 					// Repeat twice, to ensure that we don't switch to a different note
-					setTimeout(async () => {
-						await joplin.commands.execute('openNote', homeNoteId);
-					}, 2*restoreDelay);
+					if (!versionInfo.toggleEditorSupport) {
+						setTimeout(async () => {
+							await joplin.commands.execute('openNote', homeNoteId);
+						}, 2*restoreDelay);
+					}
 				}
 			},
 		});
