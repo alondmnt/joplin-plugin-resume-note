@@ -18,6 +18,19 @@ interface CursorPosition {
 	scroll: number;
 }
 
+// Get the version of Joplin
+let versionInfo = {
+	toggleEditorSupport: null,
+};
+
+async function initializeVersionInfo() {
+	const version = await joplin.versionInfo();
+	versionInfo.toggleEditorSupport = 
+		version.platform === 'mobile' && 
+		parseInt(version.version.split('.')[0]) >= 3 && 
+		parseInt(version.version.split('.')[1]) >= 2;
+}
+
 joplin.plugins.register({
 	onStart: async function() {
 		// Register the settings section and settings
@@ -100,6 +113,13 @@ joplin.plugins.register({
 				minimum: 0,
 				maximum: 10000,
 				step: 50,
+			},
+			'resumenote.toggleEditor': {
+				value: true,
+				type: SettingItemType.Bool,
+				public: true,
+				section: 'resumenote',
+				label: '(Mobile app) Switch to the Markdown editor on note selection',
 			},
 			'resumenote.saveSelection': {
 				value: true,
@@ -194,6 +214,8 @@ joplin.plugins.register({
 		const startupDelay = await joplin.settings.value('resumenote.startupDelay');
 		await new Promise(resolve => setTimeout(resolve, startupDelay));
 
+		await initializeVersionInfo();
+
 		// Register the content script
 		await joplin.contentScripts.register(
 		ContentScriptType.CodeMirrorPlugin,
@@ -247,7 +269,14 @@ joplin.plugins.register({
 			noteNotLoaded = true;
 			let note = await joplin.workspace.selectedNote();
 			if (!note) return;
-
+			if (versionInfo.toggleEditorSupport) {
+				// Wait for the note to be opened for 100 ms
+				await new Promise(resolve => setTimeout(resolve, 100));
+				const toggleEditor = await joplin.settings.value('resumenote.toggleEditor');
+				if (toggleEditor) {
+					await joplin.commands.execute('toggleVisiblePanes');
+				}
+			}
 			currentNoteId = note.id;
 			const newFolderId = note.parent_id;
 			note = clearObjectReferences(note);
