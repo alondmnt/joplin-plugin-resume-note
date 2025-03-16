@@ -178,7 +178,7 @@ joplin.plugins.register({
 			iconName: 'fas fa-home',
 			execute: async () => {
 				const homeNoteId = await joplin.settings.value('resumenote.homeNoteId');
-				if (homeNoteId) {
+				if (homeNoteId && homeNoteId !== currentNoteId) {
 					await joplin.commands.execute('openNote', homeNoteId);
 					// Repeat twice, to ensure that we don't switch to a different note
 					if (!versionInfo.mobile) {
@@ -246,10 +246,11 @@ joplin.plugins.register({
 		const homeNoteId = await joplin.settings.value('resumenote.homeNoteId');
 		const goToHomeNoteOnStartup = await joplin.settings.value('resumenote.startHomeNote');
 		if (homeNoteId) {
+			const homeNoteButtonLocation = (versionInfo.mobile) ? ToolbarButtonLocation.EditorToolbar : ToolbarButtonLocation.NoteToolbar;
 			await joplin.views.toolbarButtons.create(
 				'resumenote.goToHomeNoteToolbarButton',
 				'resumenote.goToHomeNote',
-				ToolbarButtonLocation.NoteToolbar
+				homeNoteButtonLocation
 			);
 		}
 		const toggleEditor = await joplin.settings.value('resumenote.toggleEditor');
