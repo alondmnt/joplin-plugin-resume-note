@@ -20,16 +20,11 @@ interface CursorPosition {
 
 // Get the version of Joplin
 let versionInfo = {
-	toggleEditorSupport: null,
 	mobile: null
 };
 
 async function initializeVersionInfo() {
 	const version = await joplin.versionInfo();
-	versionInfo.toggleEditorSupport = 
-		version.platform === 'mobile' && 
-		parseInt(version.version.split('.')[0]) >= 3 && 
-		parseInt(version.version.split('.')[1]) >= 2;
 	versionInfo.mobile = version.platform === 'mobile';
 }
 
@@ -258,10 +253,16 @@ joplin.plugins.register({
 		if (startupNote) {
 			await joplin.commands.execute('openNote', startupNote);
 			setTimeout(async () => {
-				if (versionInfo.toggleEditorSupport && toggleEditor) {
-					await joplin.commands.execute('toggleVisiblePanes');
+				if (!versionInfo.mobile) {
+					// We're not in the mobile app	
+					await restoreCursorPosition(startupNote);
+					return;
 				}
-				await restoreCursorPosition(startupNote);
+				// We're in the mobile app
+				if (toggleEditor) {
+					await joplin.commands.execute('toggleVisiblePanes');
+					await restoreCursorPosition(startupNote);
+				}
 			}, 2*restoreDelay);
 		}
 
@@ -273,20 +274,8 @@ joplin.plugins.register({
 			noteNotLoaded = true;
 			let note = await joplin.workspace.selectedNote();
 			if (!note) return;
-			if (versionInfo.toggleEditorSupport) {
-				// Wait for the note to be opened for 100 ms
-				await new Promise(resolve => setTimeout(resolve, 100));
-				const toggleEditor = await joplin.settings.value('resumenote.toggleEditor');
-				// Check the age of the note since its creation time
-				const createdTime = note.created_time;
-				const currentTime = Date.now();
-				const noteAge = currentTime - createdTime;
-				// Note must be older than 10 seconds
-				if (toggleEditor && noteAge > 1000*10) {
-					await joplin.commands.execute('toggleVisiblePanes');
-				}
-			}
 			currentNoteId = note.id;
+			const createdTime = note.created_time;
 			const newFolderId = note.parent_id;
 			note = clearObjectReferences(note);
 
@@ -308,8 +297,24 @@ joplin.plugins.register({
 				await updateFolderNoteMap(currentFolderId, currentNoteId);
 			}
 
-			// If we have a saved cursor position for this note, restore it
-			await restoreCursorPosition(currentNoteId);
+			if (!versionInfo.mobile) {
+				// We're not in the mobile app
+				// If we have a saved cursor position for this note, restore it
+				await restoreCursorPosition(currentNoteId);
+				return;
+			}
+
+			// We're in the mobile app
+			const toggleEditor = await joplin.settings.value('resumenote.toggleEditor');
+			const currentTime = Date.now();
+			const noteAge = currentTime - createdTime;
+			// Note must be older than 10 seconds (new note is already in edit mode)
+			if (toggleEditor && noteAge > 1000*10) {
+				await new Promise(resolve => setTimeout(resolve, 100)); // Wait for the note to be opened
+				await joplin.commands.execute('toggleVisiblePanes');
+				await restoreCursorPosition(currentNoteId);
+			}
+			return; // Do nothing or else it will fail
 		});
 
 		// Update settings
@@ -410,6 +415,9 @@ async function loadCursorPosition(noteId: string): Promise<CursorPosition | unde
 
 async function restoreCursorPosition(noteId: string): Promise<void> {
 	const savedCursor = await loadCursorPosition(noteId);
+	const isCodeView = await joplin.settings.globalValue('editor.codeView');
+	if (!isCodeView) return;  // Only proceed if in code view
+
 	if (savedCursor) {
 		await joplin.commands.execute('editor.focus');
 		await new Promise(resolve => setTimeout(resolve, restoreDelay));
