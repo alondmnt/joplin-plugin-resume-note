@@ -30,6 +30,8 @@ async function initializeVersionInfo() {
 
 joplin.plugins.register({
 	onStart: async function() {
+		await initializeVersionInfo();
+
 		// Register the settings section and settings
 		await joplin.settings.registerSection('resumenote', {
 			label: 'Resume Note',
@@ -44,11 +46,12 @@ joplin.plugins.register({
 				label: 'Folder Note Map',
 			},
 			'resumenote.saveFolderNote': {
-				value: true,
+				value: versionInfo.mobile ? false : true,
 				type: SettingItemType.Bool,
 				public: true,
 				section: 'resumenote',
 				label: 'Save the last active note in each folder. Requires restart.',
+				description: 'This setting is not yet supported on mobile devices.',
 			},
 			'resumenote.noteCursorMap': {
 				value: '{}',
@@ -213,8 +216,6 @@ joplin.plugins.register({
 		const startupDelay = await joplin.settings.value('resumenote.startupDelay');
 		await new Promise(resolve => setTimeout(resolve, startupDelay));
 
-		await initializeVersionInfo();
-
 		// Register the content script
 		await joplin.contentScripts.register(
 		ContentScriptType.CodeMirrorPlugin,
@@ -223,7 +224,7 @@ joplin.plugins.register({
 		);
 
 		// Load the useUserData setting
-		saveFolderNote = await joplin.settings.value('resumenote.saveFolderNote');
+		saveFolderNote = versionInfo.mobile ? false : await joplin.settings.value('resumenote.saveFolderNote');
 		useUserData = await joplin.settings.value('resumenote.useUserData');
 		saveSelection = await joplin.settings.value('resumenote.saveSelection');
 		restoreDelay = await joplin.settings.value('resumenote.restoreDelay');
