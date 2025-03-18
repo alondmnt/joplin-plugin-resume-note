@@ -1,6 +1,6 @@
 {
   "name": "joplin-plugin-sticky-note",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "scripts": {
     "dist": "webpack --env joplin-plugin-config=buildMain && webpack --env joplin-plugin-config=buildExtraScripts && webpack --env joplin-plugin-config=createArchive",
     "prepare": "npm run dist",
