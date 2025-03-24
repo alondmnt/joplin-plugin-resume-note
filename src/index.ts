@@ -429,18 +429,22 @@ async function restoreCursorPosition(noteId: string): Promise<void> {
 	if (savedCursor) {
 		await joplin.commands.execute('editor.focus');
 		await new Promise(resolve => setTimeout(resolve, restoreDelay));
-		await joplin.commands.execute('editor.execCommand', {
-			name: 'rn.setCursor',
-			args: [ { line: savedCursor.scroll, ch: 1, selection: 0 } ]
-		});
-		await joplin.commands.execute('editor.execCommand', {
-			name: 'rn.setScroll',
-			args: [ savedCursor ]
-		});
-		await joplin.commands.execute('editor.execCommand', {
-			name: 'rn.setCursor',
-			args: [ savedCursor ]
-		});
+		try {
+			await joplin.commands.execute('editor.execCommand', {
+				name: 'rn.setCursor',
+				args: [ { line: savedCursor.scroll, ch: 1, selection: 0 } ]
+			});
+			await joplin.commands.execute('editor.execCommand', {
+				name: 'rn.setScroll',
+				args: [ savedCursor ]
+			});
+			await joplin.commands.execute('editor.execCommand', {
+				name: 'rn.setCursor',
+				args: [ savedCursor ]
+			});
+		} catch (error) {
+			// If the command fails, it means the editor is not available
+		}
 	}
 	noteNotLoaded = false;
 }
