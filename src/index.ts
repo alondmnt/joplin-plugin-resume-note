@@ -10,7 +10,11 @@ let saveFolderNote: boolean = true;
 let useUserData: boolean = false;
 let saveSelection: boolean = true;
 let restoreDelay: number = 300;
-let noteNotLoaded: boolean = true;
+// dictates if scroll/cursor positions are being saved into memory in a loop
+let noteLoaded: boolean = false;
+let lastRecordedNoteId: string = '';
+let lastRecordedFolderId: string = '';
+let beforeLastRecordedFolderId: string = '';
 
 interface CursorPosition {
 	line: number;
@@ -52,13 +56,6 @@ joplin.plugins.register({
 				section: 'resumenote',
 				label: 'Save the last active note in each folder. Requires restart.',
 				description: 'This setting is not yet supported on mobile devices.',
-			},
-			'resumenote.restoreScrollPosition': {
-				value: true,
-				type: SettingItemType.Bool,
-				public: true,
-				section: 'resumenote',
-				label: 'Restore scroll position.',
 			},
 			'resumenote.noteCursorMap': {
 				value: '{}',
@@ -105,9 +102,9 @@ joplin.plugins.register({
 				public: true,
 				section: 'resumenote',
 				label: 'Delay before setting cursor and scroll position (in ms)',
-				description: 'Delay before setting the cursor and scroll position after opening a note in the editor.',
+				description: 'Delay before setting the cursor and scroll position after opening a note in the editor. You might want to increase it if you often see that plugin performs restore correctly, but something overwrites it right after.',
 				minimum: 0,
-				maximum: 2000,
+				maximum: 10000,
 				step: 50,
 			},
 			'resumenote.startupDelay': {
@@ -262,14 +259,14 @@ joplin.plugins.register({
 			await joplin.commands.execute('openNote', startupNote);
 			setTimeout(async () => {
 				if (!versionInfo.mobile) {
-					// We're not in the mobile app	
-					await restoreCursorPosition(startupNote);
+					// We're not in the mobile app
+					noteLoaded = await restoreCursorPosition(startupNote);
 					return;
 				}
 				// We're in the mobile app
 				if (toggleEditor) {
 					await joplin.commands.execute('toggleVisiblePanes');
-					await restoreCursorPosition(startupNote);
+					noteLoaded = await restoreCursorPosition(startupNote);
 				}
 			}, 2*restoreDelay);
 		}
@@ -279,18 +276,56 @@ joplin.plugins.register({
 
 		// Update cursor position on note selection change
 		await joplin.workspace.onNoteSelectionChange(async () => {
-			noteNotLoaded = true;
+			console.debug("On Note Selection Change [In Progress].");
 			let note = await joplin.workspace.selectedNote();
-			if (!note) return;
+			let folder = await joplin.workspace.selectedFolder();
+
+			if (lastRecordedNoteId === note?.id) {
+				console.debug("On Note Selection Change [Cancel]. Reason: Duplicated execution. Note ID: " + lastRecordedNoteId);
+				return;
+			}
+
+			lastRecordedNoteId = note?.id;
+			beforeLastRecordedFolderId = lastRecordedFolderId;
+			lastRecordedFolderId = folder?.id;
+
+			// pause cursor/scroll saves into memory until 'On Note Selection Change' handler successfully executed
+			noteLoaded = false;
+			if (!note) {
+				console.debug(`On Note Selection Change [Cancel]. Reason: no selected note discovered.`);
+				return;
+			}
 			currentNoteId = note.id;
 			const createdTime = note.created_time;
 			const newFolderId = note.parent_id;
 			note = clearObjectReferences(note);
+			let newFolderManuallySelected = await isNewFolderManuallySelected();
+
+			console.debug(`New Folder Manually Selected: ${newFolderManuallySelected}`);
 
 			// Update the last note ID
 			await joplin.settings.setValue('resumenote.lastNoteId', currentNoteId);
 
-			if (newFolderId !== currentFolderId) {
+			if (newFolderId === currentFolderId) {
+				// Update both in-memory map and settings
+				await updateFolderNoteMap(currentFolderId, currentNoteId);
+			}
+
+			// Hash is ID of the note's section.
+			// If available on note selection change - user specifically wants to be scrolled to section of other note by Joplin core.
+			// Hash is not available on note selection change during general note switching.
+			// Avoid setting pos. from memory to not overwrite Joplin's scroll position to section.
+			let newNoteHash = await joplin.workspace.selectedNoteHash();
+			if (newNoteHash != null && newNoteHash.length > 0) {
+				console.debug(`On Note Selection Change [Cancel]. Reason: cross-note link contains hash #${newNoteHash}.`);
+				// keep cursor/scroll scanning active
+				noteLoaded = true;
+				return;
+			}
+			// Open folder's default note only during manual folder click, otherwise we overwrite cross-note links targeting
+			// note in other folder.
+			if (newFolderManuallySelected && (newFolderId !== currentFolderId)) {
+				console.debug("Open folder's default note [In Progress]. Reason: manual folder change detected.");
 				currentFolderId = newFolderId;
 
 				// Check if we have a saved note for the new folder
@@ -298,31 +333,30 @@ joplin.plugins.register({
 				if (savedNoteId) {
 					// Navigate to the saved note
 					await joplin.commands.execute('openNote', savedNoteId);
+					console.debug("Open folder's default note [Done].");
+				} else {
+					console.debug("Open folder's default note [Cancel]. Reason: not set yet.");
 				}
-
-			} else {
-				// Update both in-memory map and settings
-				await updateFolderNoteMap(currentFolderId, currentNoteId);
 			}
 
 			if (!versionInfo.mobile) {
 				// We're not in the mobile app
 				// If we have a saved cursor position for this note, restore it
-				await restoreCursorPosition(currentNoteId);
-				return;
+				noteLoaded = await restoreCursorPosition(currentNoteId);
+			} else {
+				// We're in the mobile app
+				const toggleEditor = await joplin.settings.value('resumenote.toggleEditor');
+				const currentTime = Date.now();
+				const noteAge = currentTime - createdTime;
+				// Note must be older than 10 seconds (new note is already in edit mode)
+				if (toggleEditor && noteAge > 1000*10) {
+					await new Promise(resolve => setTimeout(resolve, 100)); // Wait for the note to be opened
+					await joplin.commands.execute('toggleVisiblePanes');
+					noteLoaded = await restoreCursorPosition(currentNoteId);
+				}
+				// Do nothing or else it will fail
 			}
-
-			// We're in the mobile app
-			const toggleEditor = await joplin.settings.value('resumenote.toggleEditor');
-			const currentTime = Date.now();
-			const noteAge = currentTime - createdTime;
-			// Note must be older than 10 seconds (new note is already in edit mode)
-			if (toggleEditor && noteAge > 1000*10) {
-				await new Promise(resolve => setTimeout(resolve, 100)); // Wait for the note to be opened
-				await joplin.commands.execute('toggleVisiblePanes');
-				await restoreCursorPosition(currentNoteId);
-			}
-			return; // Do nothing or else it will fail
+			console.debug(`On Note Selection Change [Done]`);
 		});
 
 		// Update settings
@@ -354,7 +388,8 @@ joplin.plugins.register({
 });
 
 // Helper functions to update / load both the in-memory map, settings and user data
-async function updateFolderNoteMap(folderId: string, noteId: string): Promise<void> {  
+async function updateFolderNoteMap(folderId: string, noteId: string): Promise<void> {
+	console.debug(`Save default note for folder [In Progress]. Note ID: ${noteId}; Folder ID: ${folderId}`);
 	if (!saveFolderNote) return;
 	if (useUserData) {
 		// Store in userData
@@ -366,6 +401,7 @@ async function updateFolderNoteMap(folderId: string, noteId: string): Promise<vo
 		// Update settings
 		await joplin.settings.setValue('resumenote.folderNoteMap', JSON.stringify(folderNoteMap));
 	}
+	console.debug(`Save default note for folder [Done]. Note ID: ${noteId}; Folder ID: ${folderId}`);
 }
 
 async function loadFolderNoteMap(folderId: string): Promise<string> {
@@ -383,12 +419,10 @@ async function loadFolderNoteMap(folderId: string): Promise<string> {
 
 // Functions to handle cursor position
 async function updateCursorPosition(): Promise<void> {
-	if (!currentNoteId) return;
-	if (noteNotLoaded) return;
-
-    // Check if we're in code view
-    const isCodeView = await joplin.settings.globalValue('editor.codeView');
-    if (!isCodeView) return;  // Only proceed if in code view
+	const isCodeView = await joplin.settings.globalValue('editor.codeView');
+	if (!currentNoteId || !noteLoaded || !isCodeView) {
+		return;
+	}
 
 	let cursor: { line: number, ch: number, scroll: number, selection: number };
 	try {
@@ -418,46 +452,75 @@ async function updateCursorPosition(): Promise<void> {
 	}
 }
 
+/**
+ * Reads cursor/scroll positions ({@link CursorPosition}) from memory.
+ * Memory varies depending on plugin setting:
+ * - user settings (single device memory);
+ * - user data (sync across devices).
+ * @param noteId - ID of currently opened note.
+ * @returns boolean indicating if note is loaded properly:
+ *          - true if no cursor/scroll position found in memory, or if restore went well;
+ *          - false if editor is not "code view", or there was error during positions restore.
+ */
 async function loadCursorPosition(noteId: string): Promise<CursorPosition | undefined> {
-  // Load from userData
+	console.debug("Load saved cursor & scroll [In Progress]. Note ID: " + currentNoteId);
+	let savedCursor: CursorPosition;
 	if (useUserData) {
-		const savedCursor: CursorPosition = await joplin.data.userDataGet(ModelType.Note, currentNoteId, 'cursor');
-		return savedCursor;
+		savedCursor = await joplin.data.userDataGet(ModelType.Note, currentNoteId, 'cursor');
+	} else {
+		// Load from memory
+		savedCursor = noteCursorMap[noteId];
 	}
-  	// Load from memory
-	return noteCursorMap[noteId];
+	console.debug(`Load saved cursor & scroll [Done]. Value: ${JSON.stringify(savedCursor)}; Note ID: ${currentNoteId}`);
+  	return savedCursor;
 }
 
-async function restoreCursorPosition(noteId: string): Promise<void> {
-	const savedCursor = await loadCursorPosition(noteId) as CursorPosition & { restoreScrollPosition: boolean };
+/**
+ * Restores cursor/scroll position of provided note from memory.
+ * Skips restore if:
+ * - no cursor/scroll position was found in memory;
+ * - note is opened in editor other than "code view" (Markdown);
+ * - error happened (not re-thrown) meaning editor is likely not available.
+ * Uses custom 'CodeMirror 6' commands registered in `cursorTracker.ts`.
+ * @see ./cursorTracker.ts for custom 'CodeMirror 6' commands.
+ * @param noteId - ID of currently opened note.
+ * @returns boolean indicating if note is loaded properly:
+ *          - true if no cursor/scroll position found in memory, or if restore went well;
+ *          - false if editor is not "code view", or there was error during positions restore.
+ */
+async function restoreCursorPosition(noteId: string): Promise<boolean> {
+	console.debug(`Restore cursor position [In Progress]. Note ID: ${noteId}.`);
+	const savedCursor = await loadCursorPosition(noteId);
+	// setting that controls whether the editor displays notes in "code view" (Markdown source) or another mode, like
+	// the rich text (WYSIWYG) editor.
 	const isCodeView = await joplin.settings.globalValue('editor.codeView');
-	if (!isCodeView) return;  // Only proceed if in code view
-	const restoreScrollPosition = await joplin.settings.value('resumenote.restoreScrollPosition');
-	savedCursor.restoreScrollPosition = restoreScrollPosition;
-
-	if (savedCursor) {
-		await joplin.commands.execute('editor.focus');
-		await new Promise(resolve => setTimeout(resolve, restoreDelay));
-		try {
-			await joplin.commands.execute('editor.execCommand', {
-				name: 'rn.setCursor',
-				args: [ { line: savedCursor.scroll, ch: 1, selection: 0, restoreScrollPosition: restoreScrollPosition } ]
-			});
-			if (restoreScrollPosition) {
-				await joplin.commands.execute('editor.execCommand', {
-					name: 'rn.setScroll',
-					args: [ savedCursor ]
-				});
-			}
-			await joplin.commands.execute('editor.execCommand', {
-				name: 'rn.setCursor',
-				args: [ savedCursor ]
-			});
-		} catch (error) {
-			// If the command fails, it means the editor is not available
-		}
+	if (!isCodeView) return false;  // Only proceed if in code view
+	if (!savedCursor) {
+		return true;
 	}
-	noteNotLoaded = false;
+
+	await joplin.commands.execute('editor.focus');
+	await new Promise(resolve => setTimeout(resolve, restoreDelay));
+	try {
+		await joplin.commands.execute('editor.execCommand', {
+			name: 'rn.setCursor',
+			args: [ { line: savedCursor.scroll, ch: 1, selection: 0 } ]
+		});
+		await joplin.commands.execute('editor.execCommand', {
+			name: 'rn.setScroll',
+			args: [ savedCursor ]
+		});
+		await joplin.commands.execute('editor.execCommand', {
+			name: 'rn.setCursor',
+			args: [ savedCursor ]
+		});
+	} catch (error) {
+		// If the command fails, it means the editor is not available
+		console.debug(`Restore cursor position [Failed]. Note ID: ${noteId}. Reason: editor is not available`);
+		return false;
+	}
+	console.debug(`Restore cursor position [Done]. Note ID: ${noteId}.`);
+	return true;
 }
 
 // Clear all note / folder properties
@@ -502,6 +565,25 @@ async function clearUserData(): Promise<void> {
 async function clearSettingsData(): Promise<void> {
 	await joplin.settings.setValue('resumenote.folderNoteMap', '{}');
 	await joplin.settings.setValue('resumenote.noteCursorMap', '{}');
+}
+
+/**
+ * Checks if manual note folder switch happened rather than user navigated to new folder
+ * through cross-note link.
+ * When user clicks on note folder Joplin core code loads some note out of the folder and
+ * then plugin comes in to overwrite it with last opened note in this folder.
+ *
+ * lastRecordedNoteId - during folder click Joplin API returns empty value when current note is requested, we record
+ * empty value in lastRecordedNoteId to indicate folder selection.
+ * lastRecordedFolderId - new folder ID recorded during folder click;
+ * beforeLastRecordedFolderId - previous folder ID.
+ * @returns true if: no lastRecordedNoteId (folder click) and new folder ID differs from prev. folder ID.
+ */
+async function isNewFolderManuallySelected(): Promise<boolean> {
+	return (lastRecordedNoteId?.length < 1)
+		&& lastRecordedFolderId?.length > 0
+		&& beforeLastRecordedFolderId?.length > 0
+		&& beforeLastRecordedFolderId !== lastRecordedFolderId;
 }
 
 export function clearObjectReferences(obj: any): null {

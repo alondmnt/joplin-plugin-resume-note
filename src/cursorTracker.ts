@@ -32,13 +32,13 @@ module.exports = {
 
 				CodeMirror.registerCommand('rn.setCursor', function(message: any) {
 					const cm: EditorView = CodeMirror.editor;
-					const { line, ch, selection, restoreScrollPosition } = message;
+					const { line, ch, selection } = message;
 					const lineInfo = cm.state.doc.line(line);
 					// Calculate the exact position by adding the character offset to the line start
 					const pos = lineInfo.from + ch;	
 					cm.dispatch({
 						selection: { anchor: pos, head: selection ? pos + selection : pos },
-						scrollIntoView: restoreScrollPosition,
+						scrollIntoView: true,
 					});
 				});
 
