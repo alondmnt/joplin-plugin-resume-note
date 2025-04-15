@@ -53,13 +53,6 @@ joplin.plugins.register({
 				label: 'Save the last active note in each folder. Requires restart.',
 				description: 'This setting is not yet supported on mobile devices.',
 			},
-			'resumenote.restoreScrollPosition': {
-				value: true,
-				type: SettingItemType.Bool,
-				public: true,
-				section: 'resumenote',
-				label: 'Restore scroll position.',
-			},
 			'resumenote.noteCursorMap': {
 				value: '{}',
 				type: SettingItemType.String,
@@ -429,11 +422,9 @@ async function loadCursorPosition(noteId: string): Promise<CursorPosition | unde
 }
 
 async function restoreCursorPosition(noteId: string): Promise<void> {
-	const savedCursor = await loadCursorPosition(noteId) as CursorPosition & { restoreScrollPosition: boolean };
+	const savedCursor = await loadCursorPosition(noteId);
 	const isCodeView = await joplin.settings.globalValue('editor.codeView');
 	if (!isCodeView) return;  // Only proceed if in code view
-	const restoreScrollPosition = await joplin.settings.value('resumenote.restoreScrollPosition');
-	savedCursor.restoreScrollPosition = restoreScrollPosition;
 
 	if (savedCursor) {
 		await joplin.commands.execute('editor.focus');
@@ -441,14 +432,12 @@ async function restoreCursorPosition(noteId: string): Promise<void> {
 		try {
 			await joplin.commands.execute('editor.execCommand', {
 				name: 'rn.setCursor',
-				args: [ { line: savedCursor.scroll, ch: 1, selection: 0, restoreScrollPosition: restoreScrollPosition } ]
+				args: [ { line: savedCursor.scroll, ch: 1, selection: 0 } ]
 			});
-			if (restoreScrollPosition) {
-				await joplin.commands.execute('editor.execCommand', {
-					name: 'rn.setScroll',
-					args: [ savedCursor ]
-				});
-			}
+			await joplin.commands.execute('editor.execCommand', {
+				name: 'rn.setScroll',
+				args: [ savedCursor ]
+			});
 			await joplin.commands.execute('editor.execCommand', {
 				name: 'rn.setCursor',
 				args: [ savedCursor ]
