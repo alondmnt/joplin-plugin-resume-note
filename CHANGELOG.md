@@ -1,3 +1,12 @@
+# [v0.4.1](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.4.1)
+*Released on 2026-01-14T05:01:12Z*
+
+- improved: cursor restore with debounce
+
+**Full Changelog**: https://github.com/alondmnt/joplin-plugin-resume-note/compare/v0.4.0...v0.4.1
+
+---
+
 # [v0.4.0](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.4.0)
 *Released on 2025-07-11T05:04:55Z*
 
