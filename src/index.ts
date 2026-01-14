@@ -12,6 +12,7 @@ let saveSelection: boolean = true;
 let restoreDelay: number = 300;
 // dictates if scroll/cursor positions are being saved into memory in a loop
 let noteLoaded: boolean = false;
+let restoreTimeout: ReturnType<typeof setTimeout> | null = null;
 let lastRecordedNoteId: string = '';
 let lastRecordedFolderId: string = '';
 let beforeLastRecordedFolderId: string = '';
@@ -268,7 +269,7 @@ joplin.plugins.register({
 					await joplin.commands.execute('toggleVisiblePanes');
 					noteLoaded = await restoreCursorPosition(startupNote);
 				}
-			}, 2*restoreDelay);
+			}, 3*restoreDelay);
 		}
 
 		// Periodic cursor position update
@@ -341,8 +342,11 @@ joplin.plugins.register({
 
 			if (!versionInfo.mobile) {
 				// We're not in the mobile app
-				// If we have a saved cursor position for this note, restore it
-				noteLoaded = await restoreCursorPosition(currentNoteId);
+				// Debounce cursor restoration to avoid focus stealing during search
+				if (restoreTimeout) clearTimeout(restoreTimeout);
+				restoreTimeout = setTimeout(async () => {
+					noteLoaded = await restoreCursorPosition(currentNoteId);
+				}, restoreDelay);
 			} else {
 				// We're in the mobile app
 				const toggleEditor = await joplin.settings.value('resumenote.toggleEditor');
@@ -352,6 +356,7 @@ joplin.plugins.register({
 				if (toggleEditor && noteAge > 1000*10) {
 					await new Promise(resolve => setTimeout(resolve, 100)); // Wait for the note to be opened
 					await joplin.commands.execute('toggleVisiblePanes');
+					await new Promise(resolve => setTimeout(resolve, restoreDelay));
 					noteLoaded = await restoreCursorPosition(currentNoteId);
 				}
 				// Do nothing or else it will fail
@@ -500,7 +505,6 @@ async function restoreCursorPosition(noteId: string): Promise<boolean> {
 	}
 
 	await joplin.commands.execute('editor.focus');
-	await new Promise(resolve => setTimeout(resolve, restoreDelay));
 	try {
 		await joplin.commands.execute('editor.execCommand', {
 			name: 'rn.setCursor',
