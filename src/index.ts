@@ -505,8 +505,8 @@ async function restoreCursorPosition(noteId: string): Promise<boolean> {
 		return true;
 	}
 
-	await joplin.commands.execute('editor.focus');
 	try {
+		await joplin.commands.execute('editor.focus');
 		await joplin.commands.execute('editor.execCommand', {
 			name: 'rn.setCursor',
 			args: [ { line: savedCursor.scroll, ch: 1, selection: 0 } ]
