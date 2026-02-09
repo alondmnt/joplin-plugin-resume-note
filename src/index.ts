@@ -78,6 +78,7 @@ joplin.plugins.register({
 				public: true,
 				section: 'resumenote',
 				label: 'Home note ID',
+				description: 'Accepts a raw note ID or a Joplin markdown link, e.g., [Title](:/noteId).',
 			},
 			'resumenote.startHomeNote': {
 				value: true,
@@ -180,7 +181,7 @@ joplin.plugins.register({
 			label: 'Go to home note',
 			iconName: 'fas fa-home',
 			execute: async () => {
-				const homeNoteId = await joplin.settings.value('resumenote.homeNoteId');
+				const homeNoteId = parseNoteId(await joplin.settings.value('resumenote.homeNoteId'));
 				if (homeNoteId && homeNoteId !== currentNoteId) {
 					await joplin.commands.execute('openNote', homeNoteId);
 					// Repeat twice, to ensure that we don't switch to a different note
@@ -244,7 +245,7 @@ joplin.plugins.register({
 
 		// Initialize with current note and folder
 		const lastNoteId = await joplin.settings.value('resumenote.lastNoteId');
-		const homeNoteId = await joplin.settings.value('resumenote.homeNoteId');
+		const homeNoteId = parseNoteId(await joplin.settings.value('resumenote.homeNoteId'));
 		const goToHomeNoteOnStartup = await joplin.settings.value('resumenote.startHomeNote');
 		if (homeNoteId) {
 			const homeNoteButtonLocation = (versionInfo.mobile) ? ToolbarButtonLocation.EditorToolbar : ToolbarButtonLocation.NoteToolbar;
@@ -588,6 +589,16 @@ async function isNewFolderManuallySelected(): Promise<boolean> {
 		&& lastRecordedFolderId?.length > 0
 		&& beforeLastRecordedFolderId?.length > 0
 		&& beforeLastRecordedFolderId !== lastRecordedFolderId;
+}
+
+/**
+ * Extracts a raw note ID from a string that may be either a plain ID
+ * or a Joplin markdown link in the format [title](:/noteId).
+ */
+export function parseNoteId(input: string): string {
+	if (!input) return '';
+	const match = input.match(/\(:\/([a-fA-F0-9]+)\)/);
+	return match ? match[1] : input.trim();
 }
 
 export function clearObjectReferences(obj: any): null {
