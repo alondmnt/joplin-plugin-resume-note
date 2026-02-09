@@ -183,11 +183,20 @@ joplin.plugins.register({
 			execute: async () => {
 				const homeNoteId = parseNoteId(await joplin.settings.value('resumenote.homeNoteId'));
 				if (homeNoteId && homeNoteId !== currentNoteId) {
-					await joplin.commands.execute('openNote', homeNoteId);
+					try {
+						await joplin.commands.execute('openNote', homeNoteId);
+					} catch (error) {
+						await joplin.views.dialogs.showMessageBox(`Home note not found (ID: ${homeNoteId}). Please check the home note setting.`);
+						return;
+					}
 					// Repeat twice, to ensure that we don't switch to a different note
 					if (!versionInfo.mobile) {
 						setTimeout(async () => {
-							await joplin.commands.execute('openNote', homeNoteId);
+							try {
+								await joplin.commands.execute('openNote', homeNoteId);
+							} catch (error) {
+								console.debug(`Go to home note (retry) [Failed]. Note ID: ${homeNoteId}. Error: ${error}`);
+							}
 						}, 2*restoreDelay);
 					}
 				}
@@ -258,8 +267,18 @@ joplin.plugins.register({
 		const toggleEditor = await joplin.settings.value('resumenote.toggleEditor');
 		let startupNote = (homeNoteId && goToHomeNoteOnStartup) ? homeNoteId : lastNoteId;
 		if (startupNote) {
-			await joplin.commands.execute('openNote', startupNote);
-			setTimeout(async () => {
+			let startupNoteOpened = false;
+			try {
+				await joplin.commands.execute('openNote', startupNote);
+				startupNoteOpened = true;
+			} catch (error) {
+				if (startupNote === homeNoteId) {
+					await joplin.views.dialogs.showMessageBox(`Home note not found (ID: ${startupNote}). Please check the home note setting.`);
+				} else {
+					console.debug(`Open startup note [Failed]. Note ID: ${startupNote}. Error: ${error}`);
+				}
+			}
+			if (startupNoteOpened) setTimeout(async () => {
 				if (!versionInfo.mobile) {
 					// We're not in the mobile app
 					noteLoaded = await restoreCursorPosition(startupNote);
@@ -267,7 +286,11 @@ joplin.plugins.register({
 				}
 				// We're in the mobile app
 				if (toggleEditor) {
-					await joplin.commands.execute('toggleVisiblePanes');
+					try {
+						await joplin.commands.execute('toggleVisiblePanes');
+					} catch (error) {
+						console.debug(`Toggle editor on startup [Failed]. Error: ${error}`);
+					}
 					noteLoaded = await restoreCursorPosition(startupNote);
 				}
 			}, 3*restoreDelay);
@@ -334,8 +357,12 @@ joplin.plugins.register({
 				const savedNoteId = await loadFolderNoteMap(newFolderId);
 				if (savedNoteId) {
 					// Navigate to the saved note
-					await joplin.commands.execute('openNote', savedNoteId);
-					console.debug("Open folder's default note [Done].");
+					try {
+						await joplin.commands.execute('openNote', savedNoteId);
+						console.debug("Open folder's default note [Done].");
+					} catch (error) {
+						console.debug(`Open folder's default note [Failed]. Note ID: ${savedNoteId}. Error: ${error}`);
+					}
 				} else {
 					console.debug("Open folder's default note [Cancel]. Reason: not set yet.");
 				}
@@ -356,7 +383,11 @@ joplin.plugins.register({
 				// Note must be older than 10 seconds (new note is already in edit mode)
 				if (toggleEditor && noteAge > 1000*10) {
 					await new Promise(resolve => setTimeout(resolve, 100)); // Wait for the note to be opened
-					await joplin.commands.execute('toggleVisiblePanes');
+					try {
+						await joplin.commands.execute('toggleVisiblePanes');
+					} catch (error) {
+						console.debug(`Toggle editor on note selection [Failed]. Error: ${error}`);
+					}
 					await new Promise(resolve => setTimeout(resolve, restoreDelay));
 					noteLoaded = await restoreCursorPosition(currentNoteId);
 				}
