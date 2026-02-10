@@ -1,3 +1,14 @@
+# [v0.4.2](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.4.2)
+*Released on 2026-02-10*
+
+- added: accept markdown link format for home note ID setting (#9)
+- fixed: handle errors from openNote and toggleVisiblePanes commands (#9)
+- fixed: move editor.focus inside try/catch in restoreCursorPosition (#9)
+
+**Full Changelog**: https://github.com/alondmnt/joplin-plugin-resume-note/compare/v0.4.1...v0.4.2
+
+---
+
 # [v0.4.1](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.4.1)
 *Released on 2026-01-14T05:01:12Z*
 
