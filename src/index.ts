@@ -23,14 +23,27 @@ interface CursorPosition {
 	scroll: number;
 }
 
+// Compare semver strings: returns true if version > target
+function versionGt(version: string, target: string): boolean {
+	const v = version.split('.').map(Number);
+	const t = target.split('.').map(Number);
+	for (let i = 0; i < Math.max(v.length, t.length); i++) {
+		if ((v[i] || 0) > (t[i] || 0)) return true;
+		if ((v[i] || 0) < (t[i] || 0)) return false;
+	}
+	return false;
+}
+
 // Get the version of Joplin
 let versionInfo = {
-	mobile: null
+	mobile: null,
+	version: '',
 };
 
 async function initializeVersionInfo() {
 	const version = await joplin.versionInfo();
 	versionInfo.mobile = version.platform === 'mobile';
+	versionInfo.version = version.version;
 }
 
 joplin.plugins.register({
@@ -121,11 +134,12 @@ joplin.plugins.register({
 				step: 50,
 			},
 			'resumenote.toggleEditor': {
-				value: true,
+				value: !versionGt(versionInfo.version, '3.6.12'),
 				type: SettingItemType.Bool,
 				public: true,
 				section: 'resumenote',
 				label: '(Mobile app) Switch to the Markdown editor on note selection',
+				description: 'This is a legacy setting for Joplin <3.6',
 			},
 			'resumenote.saveSelection': {
 				value: true,
