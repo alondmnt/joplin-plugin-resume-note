@@ -38,7 +38,7 @@ module.exports = {
 					const pos = lineInfo.from + ch;	
 					cm.dispatch({
 						selection: { anchor: pos, head: selection ? pos + selection : pos },
-						scrollIntoView: true,
+						scrollIntoView: message.scrollIntoView ?? true,
 					});
 				});
 

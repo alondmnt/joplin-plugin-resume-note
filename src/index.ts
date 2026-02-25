@@ -562,7 +562,9 @@ async function restoreCursorPosition(noteId: string): Promise<boolean> {
 		});
 		await joplin.commands.execute('editor.execCommand', {
 			name: 'rn.setCursor',
-			args: [ savedCursor ]
+			// On desktop, avoid scrollIntoView to preserve the restored scroll position.
+			// On mobile, scrolling via rn.setScroll doesn't work, so we rely on scrollIntoView.
+			args: [ { ...savedCursor, scrollIntoView: versionInfo.mobile } ]
 		});
 	} catch (error) {
 		// If the command fails, it means the editor is not available
