@@ -1,5 +1,23 @@
+# [v0.4.4](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.4.4)
+*Released on 2026-02-25T13:19:34Z*
+
+- fix: scroll position not being restored when cursor is not in view (#10). On desktop, the final cursor restore no longer forces `scrollIntoView`, preserving the saved scroll position.
+
+**Full Changelog**: https://github.com/alondmnt/joplin-plugin-resume-note/compare/v0.4.3...v0.4.4
+
+---
+
+# [v0.4.3](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.4.3)
+*Released on 2026-02-24T22:54:54Z*
+
+- improved: default `toggleEditor` to `false` for Joplin >3.6.12 (legacy setting for Joplin <3.6)
+
+**Full Changelog**: https://github.com/alondmnt/joplin-plugin-resume-note/compare/v0.4.2...v0.4.3
+
+---
+
 # [v0.4.2](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.4.2)
-*Released on 2026-02-10*
+*Released on 2026-02-10T01:14:34Z*
 
 - added: accept markdown link format for home note ID setting (#9)
 - fixed: handle errors from openNote and toggleVisiblePanes commands (#9)
