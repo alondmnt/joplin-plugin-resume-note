@@ -13,6 +13,8 @@ let restoreDelay: number = 300;
 // dictates if scroll/cursor positions are being saved into memory in a loop
 let noteLoaded: boolean = false;
 let restoreTimeout: ReturnType<typeof setTimeout> | null = null;
+let userDataDebounceTimeout: ReturnType<typeof setTimeout> | null = null;
+const userDataDebounceDelay: number = 120000; // 2min debounce for userData writes
 let lastRecordedNoteId: string = '';
 let lastRecordedFolderId: string = '';
 let beforeLastRecordedFolderId: string = '';
@@ -334,6 +336,12 @@ joplin.plugins.register({
 				console.debug(`On Note Selection Change [Cancel]. Reason: no selected note discovered.`);
 				return;
 			}
+
+			// Flush the outgoing note's cursor to userData before switching
+			if (useUserData) {
+				await flushCursorToUserData();
+			}
+
 			currentNoteId = note.id;
 			const createdTime = note.created_time;
 			const newFolderId = note.parent_id;
@@ -438,6 +446,17 @@ joplin.plugins.register({
 	},
 });
 
+// Flush the current note's cursor position to userData immediately, cancelling any pending debounce.
+async function flushCursorToUserData(): Promise<void> {
+	if (userDataDebounceTimeout) {
+		clearTimeout(userDataDebounceTimeout);
+		userDataDebounceTimeout = null;
+	}
+	if (currentNoteId && noteCursorMap[currentNoteId]) {
+		await joplin.data.userDataSet(ModelType.Note, currentNoteId, 'cursor', noteCursorMap[currentNoteId]);
+	}
+}
+
 // Helper functions to update / load both the in-memory map, settings and user data
 async function updateFolderNoteMap(folderId: string, noteId: string): Promise<void> {
 	console.debug(`Save default note for folder [In Progress]. Note ID: ${noteId}; Folder ID: ${folderId}`);
@@ -492,12 +511,14 @@ async function updateCursorPosition(): Promise<void> {
 	if (cursor) {
 		// Update in-memory object
 		noteCursorMap[currentNoteId] = cursor;
-		
-		// Add userData storage if enabled
+
+		// When useUserData is enabled, debounce writes to reduce sync traffic.
+		// Otherwise, persist to local settings on each tick.
 		if (useUserData) {
-			await joplin.data.userDataSet(ModelType.Note, currentNoteId, 'cursor', cursor);
+			if (!userDataDebounceTimeout) {
+				userDataDebounceTimeout = setTimeout(() => flushCursorToUserData(), userDataDebounceDelay);
+			}
 		} else {
-			// Update settings
 			await joplin.settings.setValue('resumenote.noteCursorMap', JSON.stringify(noteCursorMap));
 		}
 	}
