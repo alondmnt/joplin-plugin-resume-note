@@ -8,6 +8,7 @@ let folderNoteMap: Record<string, string> = {};
 let noteCursorMap: Record<string, CursorPosition> = {};
 let saveFolderNote: boolean = true;
 let useUserData: boolean = false;
+let saveCursor: boolean = true;
 let saveSelection: boolean = true;
 let restoreDelay: number = 300;
 // dictates if scroll/cursor positions are being saved into memory in a loop
@@ -72,6 +73,14 @@ joplin.plugins.register({
 				section: 'resumenote',
 				label: 'Save the last active note in each folder. Requires restart.',
 				description: 'This setting is not yet supported on mobile devices.',
+			},
+			'resumenote.saveCursor': {
+				value: true,
+				type: SettingItemType.Bool,
+				public: true,
+				section: 'resumenote',
+				label: 'Save and restore cursor position',
+				description: 'Save the cursor and scroll position for each note and restore it when the note is reopened. You may disable this if Joplin handles this natively.',
 			},
 			'resumenote.noteCursorMap': {
 				value: '{}',
@@ -257,6 +266,7 @@ joplin.plugins.register({
 		// Load the useUserData setting
 		saveFolderNote = versionInfo.mobile ? false : await joplin.settings.value('resumenote.saveFolderNote');
 		useUserData = await joplin.settings.value('resumenote.useUserData');
+		saveCursor = await joplin.settings.value('resumenote.saveCursor');
 		saveSelection = await joplin.settings.value('resumenote.saveSelection');
 		restoreDelay = await joplin.settings.value('resumenote.restoreDelay');
 
@@ -420,6 +430,9 @@ joplin.plugins.register({
 
 		// Update settings
 		await joplin.settings.onChange(async (event: any) => {
+			if (event.keys.includes('resumenote.saveCursor')) {
+				saveCursor = await joplin.settings.value('resumenote.saveCursor');
+			}
 			if (event.keys.includes('resumenote.saveSelection')) {
 				saveSelection = await joplin.settings.value('resumenote.saveSelection');
 			}
@@ -490,7 +503,7 @@ async function loadFolderNoteMap(folderId: string): Promise<string> {
 // Functions to handle cursor position
 async function updateCursorPosition(): Promise<void> {
 	const isCodeView = await joplin.settings.globalValue('editor.codeView');
-	if (!currentNoteId || !noteLoaded || !isCodeView) {
+	if (!saveCursor || !currentNoteId || !noteLoaded || !isCodeView) {
 		return;
 	}
 
@@ -562,6 +575,7 @@ async function loadCursorPosition(noteId: string): Promise<CursorPosition | unde
  */
 async function restoreCursorPosition(noteId: string): Promise<boolean> {
 	console.debug(`Restore cursor position [In Progress]. Note ID: ${noteId}.`);
+	if (!saveCursor) return true;
 	const savedCursor = await loadCursorPosition(noteId);
 	// setting that controls whether the editor displays notes in "code view" (Markdown source) or another mode, like
 	// the rich text (WYSIWYG) editor.
