@@ -1,3 +1,14 @@
+# [v0.5.0](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.5.0)
+
+- added: setting: saveCursor
+    - allows disabling cursor and scroll position saving/restoring while keeping folder-note mapping and home note features
+    - useful when Joplin handles cursor position natively
+- improved: debounce cursor userData writes to reduce sync traffic
+
+**Full Changelog**: https://github.com/alondmnt/joplin-plugin-resume-note/compare/v0.4.4...v0.5.0
+
+---
+
 # [v0.4.4](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.4.4)
 *Released on 2026-02-25T13:19:34Z*
 
