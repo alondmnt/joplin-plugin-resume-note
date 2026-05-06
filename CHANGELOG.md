@@ -1,4 +1,14 @@
+# [v0.5.1](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.5.1)
+*Released on 2026-05-06T12:07:21Z*
+
+- fix: surface openNote error reason when home note fails to load
+
+**Full Changelog**: https://github.com/alondmnt/joplin-plugin-resume-note/compare/v0.5.0...v0.5.1
+
+---
+
 # [v0.5.0](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.5.0)
+*Released on 2026-04-02T23:47:19Z*
 
 - added: setting: saveCursor
     - allows disabling cursor and scroll position saving/restoring while keeping folder-note mapping and home note features
