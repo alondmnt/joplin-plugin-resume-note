@@ -211,7 +211,8 @@ joplin.plugins.register({
 					try {
 						await joplin.commands.execute('openNote', homeNoteId);
 					} catch (error) {
-						await joplin.views.dialogs.showMessageBox(`Home note not found (ID: ${homeNoteId}). Please check the home note setting.`);
+						console.debug(`Go to home note [Failed]. Note ID: ${homeNoteId}. Error: ${error}`);
+						await joplin.views.dialogs.showMessageBox(`Home note not found (ID: ${homeNoteId}). Reason: ${error}. Please check the home note setting.`);
 						return;
 					}
 					// Repeat twice, to ensure that we don't switch to a different note
@@ -298,10 +299,9 @@ joplin.plugins.register({
 				await joplin.commands.execute('openNote', startupNote);
 				startupNoteOpened = true;
 			} catch (error) {
+				console.debug(`Open startup note [Failed]. Note ID: ${startupNote}. Error: ${error}`);
 				if (startupNote === homeNoteId) {
-					await joplin.views.dialogs.showMessageBox(`Home note not found (ID: ${startupNote}). Please check the home note setting.`);
-				} else {
-					console.debug(`Open startup note [Failed]. Note ID: ${startupNote}. Error: ${error}`);
+					await joplin.views.dialogs.showMessageBox(`Home note not found (ID: ${startupNote}). Reason: ${error}. Please check the home note setting.`);
 				}
 			}
 			if (startupNoteOpened) setTimeout(async () => {
