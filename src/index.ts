@@ -283,8 +283,8 @@ joplin.plugins.register({
 			let startupNoteOpened = false;
 			// On slow hardware, Joplin's command runtime may not be ready when onStart fires,
 			// causing openNote to throw "Cannot execute a command without a runtime: openNote".
-			// Retry up to 20 times at 1s intervals while the error indicates a missing runtime.
-			const maxRuntimeRetries = 20;
+			// Retry up to 60 times at 1s intervals while the error indicates a missing runtime.
+			const maxRuntimeRetries = 60;
 			const runtimeRetryDelay = 1000;
 			let lastError: any;
 			for (let attempt = 1; attempt <= maxRuntimeRetries; attempt++) {
