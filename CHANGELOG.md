@@ -1,3 +1,12 @@
+# [v0.5.3](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.5.3)
+*Released on 2026-05-07T01:49:40Z*
+
+- fix: extend openNote runtime retry window to 60s for slow hardware
+
+**Full Changelog**: https://github.com/alondmnt/joplin-plugin-resume-note/compare/v0.5.2...v0.5.3
+
+---
+
 # [v0.5.2](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.5.2)
 *Released on 2026-05-07T01:38:26Z*
 
