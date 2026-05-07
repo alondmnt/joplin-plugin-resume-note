@@ -133,17 +133,6 @@ joplin.plugins.register({
 				maximum: 10000,
 				step: 50,
 			},
-			'resumenote.startupDelay': {
-				value: 1000,
-				type: SettingItemType.Int,
-				public: true,
-				section: 'resumenote',
-				label: 'Delay before starting the plugin (in ms)',
-				description: 'Delay after Joplin starts before the plugin is activated.',
-				minimum: 0,
-				maximum: 10000,
-				step: 50,
-			},
 			'resumenote.toggleEditor': {
 				value: !versionGt(versionInfo.version, '3.6.12'),
 				type: SettingItemType.Bool,
@@ -253,9 +242,6 @@ joplin.plugins.register({
 			'resumenote.resetHomeNote',
 			MenuItemLocation.Note
 		);
-
-		const startupDelay = await joplin.settings.value('resumenote.startupDelay');
-		await new Promise(resolve => setTimeout(resolve, startupDelay));
 
 		// Register the content script
 		await joplin.contentScripts.register(
