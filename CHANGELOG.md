@@ -1,3 +1,13 @@
+# [v0.5.2](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.5.2)
+*Released on 2026-05-07T01:38:26Z*
+
+- fix: retry openNote at startup while Joplin command runtime initialises
+- refactor: drop startupDelay setting, redundant with runtime retry
+
+**Full Changelog**: https://github.com/alondmnt/joplin-plugin-resume-note/compare/v0.5.1...v0.5.2
+
+---
+
 # [v0.5.1](https://github.com/alondmnt/joplin-plugin-resume-note/releases/tag/v0.5.1)
 *Released on 2026-05-06T12:07:21Z*
 
