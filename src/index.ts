@@ -295,13 +295,29 @@ joplin.plugins.register({
 		let startupNote = (homeNoteId && goToHomeNoteOnStartup) ? homeNoteId : lastNoteId;
 		if (startupNote) {
 			let startupNoteOpened = false;
-			try {
-				await joplin.commands.execute('openNote', startupNote);
-				startupNoteOpened = true;
-			} catch (error) {
-				console.debug(`Open startup note [Failed]. Note ID: ${startupNote}. Error: ${error}`);
+			// On slow hardware, Joplin's command runtime may not be ready when onStart fires,
+			// causing openNote to throw "Cannot execute a command without a runtime: openNote".
+			// Retry up to 20 times at 1s intervals while the error indicates a missing runtime.
+			const maxRuntimeRetries = 20;
+			const runtimeRetryDelay = 1000;
+			let lastError: any;
+			for (let attempt = 1; attempt <= maxRuntimeRetries; attempt++) {
+				try {
+					await joplin.commands.execute('openNote', startupNote);
+					startupNoteOpened = true;
+					break;
+				} catch (error) {
+					lastError = error;
+					const isRuntimeNotReady = String(error?.message ?? error).includes('without a runtime');
+					if (!isRuntimeNotReady || attempt === maxRuntimeRetries) break;
+					console.debug(`Open startup note [Retry ${attempt}/${maxRuntimeRetries}]. Note ID: ${startupNote}. Reason: command runtime not ready.`);
+					await new Promise(resolve => setTimeout(resolve, runtimeRetryDelay));
+				}
+			}
+			if (!startupNoteOpened) {
+				console.debug(`Open startup note [Failed]. Note ID: ${startupNote}. Error: ${lastError}`);
 				if (startupNote === homeNoteId) {
-					await joplin.views.dialogs.showMessageBox(`Home note not found (ID: ${startupNote}). Reason: ${error}. Please check the home note setting.`);
+					await joplin.views.dialogs.showMessageBox(`Home note not found (ID: ${startupNote}). Reason: ${lastError}. Please check the home note setting.`);
 				}
 			}
 			if (startupNoteOpened) setTimeout(async () => {
